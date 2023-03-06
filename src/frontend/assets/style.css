@@ -18,6 +18,7 @@ body {
 .db_cell {
     display: flex;
     flex-direction: column;
+    text-transform: uppercase;
 }
 
 .db_cell code { font-size: xx-large; }
@@ -162,6 +163,7 @@ pre { overflow: scroll;}
 a {
     color: $clickable;
     text-decoration: none; 
+    word-break: break-all;
 }
 
 a:hover { 
@@ -253,8 +255,6 @@ hr {
 }
 
 .inactive { opacity: 0.30; }
-
-.outdated { opacity: 0.55; }
 
 .subtle { opacity: 0.75; }
 
@@ -508,8 +508,15 @@ a.accent, .accent { color: $accent; }
     color: black;
 }
 
-.banner, .banner2 {
-    text-align: center;
+.banner, .banner2 { text-align: center; }
+
+.comment .banner,
+.comment .banner2,
+.comment .banner3 {
+    margin: 1em;
+}
+
+.banner, .banner2, .banner3 {
     padding: 1em;
     border-radius: 5px;
 }
@@ -517,6 +524,10 @@ a.accent, .accent { color: $accent; }
 .banner2 {
     background: $clickable;
     color: $background_light;
+}
+
+.banner3 {
+    background: $background_dark;
 }
 
 .post_head {
@@ -569,7 +580,7 @@ a.accent, .accent { color: $accent; }
         justify-self: left;
     }
 
-    .banner { border-radius: 0 }
+    .banner, .banner2, .banner3 { border-radius: 0 }
 
     .prime img { border-radius: 0; }
 

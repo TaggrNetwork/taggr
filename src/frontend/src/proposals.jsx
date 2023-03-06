@@ -122,18 +122,19 @@ export const Proposals = () => {
                 const voted = proposal.votes.some(vote => api._principalId == vote[0]);
                 const adopted = proposal.votes.reduce((acc, [_, adopted, votes]) => adopted ? acc + votes : acc, 0);
                 const rejected = proposal.votes.reduce((acc, [_, adopted, votes]) => !adopted ? acc + votes : acc, 0);
+                const open = proposal.status == "Open";
                 const commit = proposal.payload.Release ? chunks(proposal.payload.Release.commit).join(" ") : null;
                 const hash = proposal.payload.Release ? chunks(proposal.payload.Release.hash).join(" ") : null;
                 const dailyDrop = proposal.voting_power / 100;
                 const t = backendCache.config.proposal_approval_threshold;
                 const days = Math.ceil((proposal.voting_power - (adopted > rejected ? adopted / t : rejected / (100 - t)) * 100) / dailyDrop);
                 return <div key={proposal.timestamp}
-                    className={`stands_out column_container ${proposal.status != "Open" ? "outdated" : ""}`}>
+                    className="stands_out column_container">
+                    <div className="monospace bottom_half_spaced">ID: <code>{proposal.id}</code></div>
                     <div className="monospace bottom_half_spaced">TYPE: {Object.keys(proposal.payload)[0].toUpperCase()}</div>
                     <div className="monospace bottom_half_spaced">PROPOSER: <a href={`#/user/${proposal.proposer}`}>{`@${backendCache.users[proposal.proposer]}`}</a></div>
                     <div className="monospace bottom_half_spaced">DATE: {timeAgo(proposal.timestamp)}</div>
-                    <div className="monospace bottom_spaced">STATUS: {statusEmoji(proposal.status)}&nbsp;
-                        {i == 0 && status ? status : proposal.status.toUpperCase()}</div>
+                    <div className="monospace bottom_spaced">STATUS: {statusEmoji(proposal.status)} <span className={open ? "accent" : null}>{status ? status : proposal.status.toUpperCase()}</span></div>
                     {"Release" in proposal.payload && <div className="monospace bottom_spaced">
                         {commit && <div className="row_container bottom_half_spaced">COMMIT:<a className="monospace left_spaced" href={`${REPO}/${proposal.payload.Release.commit}`}>{commit}</a></div>}
                         <div className="row_container"><span>HASH:</span><code className="left_spaced monospace">{hash}</code></div>
@@ -147,24 +148,24 @@ export const Proposals = () => {
                     <div className="monospace bottom_spaced">
                         EFFECTIVE VOTING POWER: <code>{token(proposal.voting_power)}</code>
                     </div>
-                    {proposal.status == "Open" && !isNaN(days) && <div className="monospace bottom_spaced">
+                    {open && !isNaN(days) && <div className="monospace bottom_spaced">
                         EXECUTION DEADLINE: <code>{days}</code> DAYS
                     </div>}
                     <div className="monospace bottom_spaced">
-                        <div className="bottom_half_spaced">ADOPTED: <b className={adopted > rejected ? "accent" : null}>{token(adopted)}</b> ({percentage(adopted, proposal.voting_power)})</div>
+                        <div className="bottom_half_spaced">ADOPTED: <b className={adopted > rejected && open ? "accent" : null}>{token(adopted)}</b> ({percentage(adopted, proposal.voting_power)})</div>
                         <div className="small_text">{users && userList(proposal.votes.filter(vote => vote[1]).map(vote => users[vote[0]]))}</div>
                     </div>
                     <div className="monospace bottom_spaced">
-                        <div className="bottom_half_spaced">REJECTED: <b className={adopted < rejected ? "accent" : null}>{token(rejected)}</b> ({percentage(rejected, proposal.voting_power)})</div>
+                        <div className="bottom_half_spaced">REJECTED: <b className={adopted < rejected && open ? "accent" : null}>{token(rejected)}</b> ({percentage(rejected, proposal.voting_power)})</div>
                         <div className="small_text">{users && userList(proposal.votes.filter(vote => !vote[1]).map(vote => users[vote[0]]))}</div>
                     </div>
-                    {api._user && proposal.status == "Open" && !voted && <>
+                    {api._user && open && !voted && <>
                         <div className="row_container">
                             <ButtonWithLoading onClick={() => vote(proposal.id, false)} classNameArg="max_width_col large_text" label="REJECT" />
                             <ButtonWithLoading onClick={() => vote(proposal.id, true)} classNameArg="max_width_col large_text" label="ADOPT" />
                         </div>
                     </>}
-                    {api._user && api._user.id == proposal.proposer && proposal.status == "Open" &&
+                    {api._user && api._user.id == proposal.proposer && open &&
                         <ButtonWithLoading onClick={async () => {
                             await api.call("cancel_proposal", proposal.id);
                             await loadState();

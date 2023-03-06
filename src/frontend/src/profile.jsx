@@ -118,7 +118,7 @@ export const UserInfo = ({profile}) => {
                 <code>{profile.karma.toLocaleString()}</code>
             </div>
             <div className="db_cell">
-                RECEIVED KARMA
+                NEW KARMA
                 <code className="accent">
                     {profile.rewarded_karma.toLocaleString()}
                 </code>

@@ -58,7 +58,7 @@ export const Header = ({subtle, route}) => {
             {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/invites">🎟 INVITES</a>}
             {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/settings">⚙️ SETTINGS</a>}
             <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/dashboard">📊 DASHBOARD</a>
-            <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/tokens">💎 TOKENS</a>
+            <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/tokenomics">💎 TOKENOMICS</a>
             <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/proposals">🎈 PROPOSALS</a>
             <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/whitepaper">📄 WHITE PAPER</a>
             <a className="iconed" href="" onClick={logout}>🔌 LOGOUT</a>

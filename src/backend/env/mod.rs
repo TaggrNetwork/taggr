@@ -1137,6 +1137,14 @@ impl State {
         {
             return Err("should be a latin alpha-numeric string".into());
         }
+        if name
+            .chars()
+            .next()
+            .map(|c| !char::is_ascii_alphabetic(&c))
+            .unwrap_or_default()
+        {
+            return Err("first character can't be a number".into());
+        }
         if name.chars().all(|c| char::is_ascii_digit(&c)) {
             return Err("should have at least one character".into());
         }

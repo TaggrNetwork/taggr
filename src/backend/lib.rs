@@ -84,12 +84,21 @@ fn post_upgrade() {
         {
             return Err("should be an alpha-numeric string".into());
         }
+        if name
+            .chars()
+            .next()
+            .map(|c| !char::is_ascii_alphabetic(&c))
+            .unwrap_or_default()
+        {
+            return Err("first character can't be a number".into());
+        }
         if name.chars().all(|c| char::is_ascii_digit(&c)) {
             return Err("should have at least one character".into());
         }
         Ok(())
     }
-    for u in state_mut().users.values_mut() {
+    let s = state_mut();
+    for u in s.users.values_mut() {
         match validate_username(&u.name) {
             Err(msg) if msg != "taken" && u.id != 0 => {
                 ic_cdk::println!("{} renamed", u.name);
@@ -98,6 +107,22 @@ fn post_upgrade() {
             _ => {}
         }
     }
+
+    // rename users according to their comments on https://taggr.link/#/thread/18784
+    s.users.get_mut(&759).unwrap().name = "virtualmachine".into();
+
+    // Mint missing tokens to @Um (see https://taggr.link/#/thread/18735)
+    crate::env::token::mint(
+        s,
+        Account {
+            owner: candid::Principal::from_text(
+                "ntzj4-wy4e6-33mt3-56bwa-tm3tr-rtvtf-bofnk-7pv6y-lyynh-hjnwc-tqe",
+            )
+            .unwrap(),
+            subaccount: None,
+        },
+        4300,
+    );
 }
 
 /*
@@ -429,6 +454,13 @@ fn edit_post(
         caller(),
         api::time(),
     )
+}
+
+#[export_name = "canister_update delete_post"]
+fn delete_post() {
+    let (post_id, versions): (PostId, Vec<String>) = parse(&arg_data_raw());
+    post::delete(state_mut(), post_id, versions);
+    reply_raw(&[]);
 }
 
 #[export_name = "canister_update toggle_bookmark"]

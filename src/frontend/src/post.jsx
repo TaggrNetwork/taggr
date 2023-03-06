@@ -2,9 +2,9 @@ import * as React from "react";
 import { Form } from './form';
 import { Content } from './content';
 import { Poll } from './poll';
-import { isRoot, BurgerButton, reactions, timeAgo, ToggleButton, NotFound, applyPatch, loadPostBlobs, ShareButton, commaSeparated, Loading, objectReduce, reactionCosts, postUserToPost, loadPost, ReactionToggleButton, RealmRibbon, setTitle, ButtonWithLoading } from './common';
+import { isRoot, BurgerButton, reactions, timeAgo, ToggleButton, NotFound, applyPatch, loadPostBlobs, ShareButton, commaSeparated, Loading, objectReduce, reactionCosts, postUserToPost, loadPost, ReactionToggleButton, RealmRibbon, setTitle, ButtonWithLoading, bigScreen } from './common';
 import {PostFeed} from "./post_feed";
-import {reaction2icon, Chat, Edit, Save, Unsave, Watch, Unwatch, Repost, Coin, Flag, New, Comment, CarretRight } from "./icons";
+import {reaction2icon, Chat, Edit, Save, Unsave, Watch, Unwatch, Repost, Coin, Flag, New, Comment, CarretRight, Trash } from "./icons";
 
 export const postDataProvider = (id, preloadedData = null, rootOnly = false) => {
     const provider = { root: id, source: {} };
@@ -39,9 +39,9 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
     const [safeToOpen, setSafeToOpen] = React.useState(false);
     const [commentIncoming, setCommentIncoming] = React.useState(false);
 
-    const loadData = async () => {
+    const loadData = async (force) => {
         const fullTreeLoadRequired = id in data.source && showComments && data.source[id].children.length + 1 > Object.keys(data.source).length;
-        if (!(id in data.source) || fullTreeLoadRequired) {
+        if (force || !(id in data.source) || fullTreeLoadRequired) {
             setFullTreeIsLoading(true);
             await data.load();
             setFullTreeIsLoading(false);
@@ -116,7 +116,8 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
     const highlightOp = treeLoaded && post.user.id == data.source[data.root]?.user.id;
     const user = api._user;
     const showReport = post.report && !post.report.closed && user && user.stalwart;
-    const deleted = post.report && post.report.closed && post.report.confirmed_by.length > post.report.rejected_by.length;
+    const deleted = post.hashes.length > 0;
+    const deletedByModeration = post.report && post.report.closed && post.report.confirmed_by.length > post.report.rejected_by.length;
     const isComment = !isRoot(post);
     const commentAsPost = isComment && !isCommentView;
     const realmPost = (!isComment || !isCommentView) && post.realm && (!user || user.current_realm != post.realm);
@@ -128,13 +129,22 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
 
     if (isPrime) setTitle(`Post #${post.id} by @${backendCache.users[post.user.id]}`);
 
-    if (deleted) return <h4 className="banner">DELETED VIA MODERATION</h4>;
+    if (deletedByModeration) return <h4 className="banner">DELETED VIA MODERATION</h4>;
+
+    let cls = isPrime ? "top_spaced " : "";
+    if (!deleted && !isNSFW && !showReport) {
+        if (realmPost) cls = "realm_post";
+        cls += isGallery ? " gallery_post" : " text_post";
+    }
 
     return <div ref={post => { if(post && focused && rendering) post.scrollIntoView({ behavior: "smooth" }); }}
         className={classNameArg || null}>
-        {showReport && <ReportBanner post={post} />}
-        {isNSFW && <div className="post_head banner2 x_large_text" onClick={() => setSafeToOpen(true)}>#NSFW</div>}
-        <div className={`post_box ${sum < 0 ? "inactive" : ""} ${realmPost ? "realm_post" : ""} ${isGallery ? "gallery_post": "text_post"} `} style={{position: "relative"}}>
+        <div className={`post_box ${sum < 0 ? "inactive" : ""} ${cls}`} style={{position: "relative"}}>
+            {showReport && <ReportBanner post={post} />}
+            {isNSFW && <div className="post_head banner2 x_large_text" onClick={() => setSafeToOpen(true)}>#NSFW</div>}
+            {deleted && <div className="post_head banner3 small_text monospace"><h3>Post deleted</h3>
+                <ol>{post.hashes.map(hash => <li key={hash}><code>{bigScreen() ? hash : hash.slice(0,16)}</code></li>)}</ol>
+            </div>}
             {realmPost && <RealmRibbon name={post.realm} />}
             {commentAsPost  && <a className="reply_tag external monospace" href={`#/thread/${post.id}`}>{post.parent} &#8592;</a>}
             {isComment && !commentAsPost && <span className="thread_button clickable"
@@ -164,7 +174,7 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
                     <Form submitCallback={commentSubmissionCallback} postId={post.id}
                         writingCallback={() => setCommentIncoming(true)}
                         comment={true} />}
-                {<PostInfo post={post} version={version} postCreated={postCreated} />}
+                {<PostInfo post={post} version={version} postCreated={postCreated} deletionCallback={async () => await loadData(true)} />}
             </div>
         </div>}
         {fullTreeIsLoading && <Loading />}
@@ -175,7 +185,7 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
     </div>;
 };
 
-const PostInfo = ({post, version, postCreated}) => {
+const PostInfo = ({post, version, postCreated, deletionCallback}) => {
     const [busy, setBusy] = React.useState(false);
     const linkToProfile = id => <a key={id} href={`/#/user/${id}`}>{`${window.backendCache.users[id]}`}</a> ;
     const postAuthor = api._user?.id == post.user.id;
@@ -197,7 +207,6 @@ const PostInfo = ({post, version, postCreated}) => {
                     alert(response)
                 };
             }}><Flag /></button>}
-            {postAuthor && <button className="max_width_col" onClick={() => location.href=`/#/edit/${post.id}`}><Edit /></button>}
             <ToggleButton classNameArg="max_width_col" offLabel={<Watch />} onLabel={<Unwatch />}
                 currState={() => post.watchers.includes(api._user?.id)} 
                 toggler={() => api.call("toggle_following_post", post.id)} />
@@ -218,6 +227,22 @@ const PostInfo = ({post, version, postCreated}) => {
                     alert(`Error: ${response.Err}`);
                 } else alert("Thank you!");
             }}><Coin /></button>
+            {postAuthor && <>
+                <button className="max_width_col" onClick={() => location.href=`/#/edit/${post.id}`}><Edit /></button>
+                {post.hashes.length == 0 && <button className="max_width_col" onClick={async () => {
+                    if (!confirm("Please confirm the post deletion.")) return;
+                    let current = post.body;
+                    const versions = [current];
+                    for (let i = post.patches.length-1; i >= 0; i--) {
+                        const [_timestamp, patch] = post.patches[i]
+                        current = applyPatch(current, patch)[0];
+                        versions.push(current);
+                    }
+                    versions.reverse();
+                    await api.call("delete_post", post.id, versions);
+                    await deletionCallback(); 
+                }}><Trash /></button>}
+            </>}
         </div>}
         <div className="small_text top_spaced">
             <b>CREATED</b>: {new Date(parseInt(postCreated) / 1000000).toLocaleString()}

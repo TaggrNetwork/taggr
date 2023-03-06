@@ -26,7 +26,6 @@ impl Default for Status {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct Proposal {
-    #[serde(default)]
     pub id: u32,
     pub proposer: UserId,
     pub timestamp: u64,

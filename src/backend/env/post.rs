@@ -36,6 +36,8 @@ pub struct Post {
     pub tips: Vec<(UserId, Cycles)>,
     extension: Option<Extension>,
     pub realm: Option<String>,
+    #[serde(default)]
+    hashes: Vec<String>,
 }
 
 impl Post {
@@ -66,6 +68,7 @@ impl Post {
             patches: Default::default(),
             files: Default::default(),
             tips: Default::default(),
+            hashes: Default::default(),
             tree_size: 0,
             tree_update: timestamp,
             report: None,
@@ -128,10 +131,23 @@ impl Post {
             report.vote(stalwarts, stalwart, confirmed);
             let approved = report.closed && report.confirmed_by.len() > report.rejected_by.len();
             if approved {
-                self.body = Default::default();
-                self.patches = Default::default();
+                self.delete(vec![self.body]);
             }
         }
+    }
+
+    pub fn delete(&mut self, versions: Vec<String>) {
+        self.files.clear();
+        self.body.clear();
+        self.patches.clear();
+        self.hashes = versions
+            .into_iter()
+            .map(|value| {
+                let mut hasher = Sha256::new();
+                hasher.update(value.as_bytes());
+                format!("{:x}", hasher.finalize())
+            })
+            .collect();
     }
 
     pub fn report(&mut self, reporter: UserId, reason: String) {
@@ -224,10 +240,11 @@ pub fn edit(
     let user_id = user.id;
     post.tags = tags(CONFIG.max_tag_length, &body);
     post.body = body;
-    let costs = post.costs(blobs.len());
     post.valid(&blobs)?;
-    state.charge(user_id, costs, format!("editing of post {}", id))?;
+    let files_before = post.files.len();
     post.save_blobs(state, blobs);
+    let costs = post.costs(post.files.len().saturating_sub(files_before));
+    state.charge(user_id, costs, format!("editing of post {}", id))?;
     post.patches.push((post.timestamp, patch));
     post.timestamp = timestamp;
 
@@ -356,8 +373,8 @@ pub fn add(
         }
     }
     post.save_blobs(state, blobs);
+    state.posts.insert(post.id, post.clone());
     notify_about(state, &post);
-    state.posts.insert(post.id, post);
 
     state
         .thread(id)

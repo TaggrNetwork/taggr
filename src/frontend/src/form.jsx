@@ -8,7 +8,7 @@ const MAX_IMG_SIZE = 16777216;
 const MAX_SUGGESTED_TAGS = 5;
 export const MAX_POST_SIZE_BYTES = Math.ceil(1024 * 1024 * 1.9);
 
-export const Form = ({postId = null, comment, realmArg = "", expanded, submitCallback, writingCallback, blobs, content}) => {
+export const Form = ({postId = null, comment, realmArg = "", expanded, submitCallback, writingCallback = () => {}, blobs, content}) => {
     const draftKey = `draft_for_${comment? "comment" : "post"}_${postId}`;
     const [value, setValue] = React.useState("");
     const [realm, setRealm] = React.useState(realmArg);

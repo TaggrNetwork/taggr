@@ -72,7 +72,7 @@ const App = () => {
     window.lastActivity = new Date();
     const api = window.api;
     const auth = content => api._principalId ? content : <Unauthorized />;
-    const [handler, param, param2] = parseHash();
+    const [handler = "", param, param2] = parseHash();
     const heartbeat = (new Date()).toTimeString();
     let subtle = false;
     let content = null;
@@ -118,7 +118,7 @@ const App = () => {
         content = auth(<Inbox />);
     } else if (handler == "proposals") {
         content = <Proposals />
-    } else if (handler == "tokens") {
+    } else if (handler.startsWith("token")) {
         content = <Tokens />
     } else if (handler == "bookmarks") {
         content = auth(<PostFeed title={<HeadBar title="Bookmarks" shareLink="bookmarks" />} includeComments={true}
