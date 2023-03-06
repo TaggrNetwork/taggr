@@ -174,7 +174,7 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
                     <Form submitCallback={commentSubmissionCallback} postId={post.id}
                         writingCallback={() => setCommentIncoming(true)}
                         comment={true} />}
-                {<PostInfo post={post} version={version} postCreated={postCreated} deletionCallback={async () => await loadData(true)} />}
+                {<PostInfo post={post} version={version} postCreated={postCreated} callback={async () => await loadData(true)} />}
             </div>
         </div>}
         {fullTreeIsLoading && <Loading />}
@@ -185,28 +185,26 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
     </div>;
 };
 
-const PostInfo = ({post, version, postCreated, deletionCallback}) => {
-    const [busy, setBusy] = React.useState(false);
+const PostInfo = ({post, version, postCreated, callback}) => {
     const linkToProfile = id => <a key={id} href={`/#/user/${id}`}>{`${window.backendCache.users[id]}`}</a> ;
     const postAuthor = api._user?.id == post.user.id;
-
-    if (busy) return <Loading />;
-
-    return <div>
+    return <>
         {api._user && <div className="row_container top_half_spaced">
-            {!postAuthor && <button className="max_width_col" onClick={async () => {
+            {!postAuthor && <ButtonWithLoading classNameArg="max_width_col" onClick={async () => {
                 let reason = prompt("You are reporting this post to stalwarts. If the report gets rejected, you'll lose cycles and karma. If you want to continue, please justify the report:");
                 if (reason) {
                     if (reason.length > 256) {
                         alert("Please limit your message to 256 characters.");
                         return;
                     }
-                    setBusy(true);
                     let response = await api.call("report", post.id, reason);
-                    setBusy(false);
-                    alert(response)
+                    if ("Err" in response) {
+                        alert(`Error: ${response.Err}`);
+                        return;
+                    }
+                    alert("Report accepted! Thank you!")
                 };
-            }}><Flag /></button>}
+            }} label={<Flag />} />}
             <ToggleButton classNameArg="max_width_col" offLabel={<Watch />} onLabel={<Unwatch />}
                 currState={() => post.watchers.includes(api._user?.id)} 
                 toggler={() => api.call("toggle_following_post", post.id)} />
@@ -215,21 +213,19 @@ const PostInfo = ({post, version, postCreated, deletionCallback}) => {
                 offLabel={<Save />} onLabel={<Unsave />}
                 currState={() => api._user.bookmarks.includes(post.id)} 
                 toggler={() => api.call("toggle_bookmark", post.id).then(api._reloadUser)} />
-            <button className="max_width_col" onClick={async () => {
+            <ButtonWithLoading classNameArg="max_width_col" onClick={async () => {
                 const cycles = prompt(`Tip @${post.user.name} with cycles (tipping fee: ${backendCache.config.tipping_fee}):`, 20);
                 if(cycles == null) return;
                 const tip = parseInt(cycles);
                 if(isNaN(tip)) alert("Couldn't parse the number of cycles.");
-                setBusy(true);
                 let response = await api.call("tip", post.id, tip);
-                setBusy(false);
                 if ("Err" in response) {
                     alert(`Error: ${response.Err}`);
-                } else alert("Thank you!");
-            }}><Coin /></button>
+                } else await callback();
+            }} label={<Coin />} />
             {postAuthor && <>
                 <button className="max_width_col" onClick={() => location.href=`/#/edit/${post.id}`}><Edit /></button>
-                {post.hashes.length == 0 && <button className="max_width_col" onClick={async () => {
+                {post.hashes.length == 0 && <ButtonWithLoading classNameArg="max_width_col" onClick={async () => {
                     if (!confirm("Please confirm the post deletion.")) return;
                     let current = post.body;
                     const versions = [current];
@@ -239,9 +235,11 @@ const PostInfo = ({post, version, postCreated, deletionCallback}) => {
                         versions.push(current);
                     }
                     versions.reverse();
-                    await api.call("delete_post", post.id, versions);
-                    await deletionCallback(); 
-                }}><Trash /></button>}
+                    let response = await api.call("delete_post", post.id, versions);
+                    if ("Err" in response) {
+                        alert(`Error: ${response.Err}`);
+                    } else await callback();
+                }} label={<Trash />} />}
             </>}
         </div>}
         <div className="small_text top_spaced">
@@ -265,7 +263,7 @@ const PostInfo = ({post, version, postCreated, deletionCallback}) => {
                     </div>;
                 })}</div>}
         </div>
-    </div>;
+    </>;
 };
 
 const PostBar = ({post, react, highlighted, highlightOp, repost, showInfo, toggleInfo, showComments, toggleComments, postCreated, isThreadView, level}) => {

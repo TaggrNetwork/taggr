@@ -459,12 +459,7 @@ fn edit_post(
 #[export_name = "canister_update delete_post"]
 fn delete_post() {
     let (post_id, versions): (PostId, Vec<String>) = parse(&arg_data_raw());
-    state_mut()
-        .posts
-        .get_mut(&post_id)
-        .expect("no post found")
-        .delete(versions);
-    reply_raw(&[]);
+    reply(state_mut().delete_post(caller(), post_id, versions));
 }
 
 #[export_name = "canister_update toggle_bookmark"]

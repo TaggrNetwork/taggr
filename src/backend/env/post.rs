@@ -37,7 +37,7 @@ pub struct Post {
     extension: Option<Extension>,
     pub realm: Option<String>,
     #[serde(default)]
-    hashes: Vec<String>,
+    pub hashes: Vec<String>,
 }
 
 impl Post {
@@ -197,8 +197,8 @@ impl Post {
             .reactions
             .iter()
             .filter_map(|(id, _)| CONFIG.reactions.iter().find(|(rid, _)| id == rid))
-            .map(|(_, cost)| *cost)
-            .sum::<i32>()
+            .map(|(_, cost)| *cost as i64)
+            .sum::<i64>()
             < 0
         {
             return;

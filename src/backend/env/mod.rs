@@ -1397,25 +1397,30 @@ impl State {
             .vote_on_poll(user_id, user_realms, time, vote)
     }
 
-    pub fn report(&mut self, principal: Principal, post_id: PostId, reason: String) -> String {
+    pub fn report(
+        &mut self,
+        principal: Principal,
+        post_id: PostId,
+        reason: String,
+    ) -> Result<(), String> {
         let cycles_required = CONFIG.reporting_penalty / 2;
         let user = match self.principal_to_user(principal) {
             Some(user) if user.cycles() >= cycles_required => user.clone(),
             _ => {
-                return format!(
-                    "You need at least {} cycles to report a post.",
+                return Err(format!(
+                    "You need at least {} cycles to report a post",
                     cycles_required
-                )
+                ))
             }
         };
         let post = match self.posts.get_mut(&post_id) {
             Some(post) => {
                 if post.report.is_some() {
-                    return "This post is already reported.".to_string();
+                    return Err("This post is already reported".into());
                 }
                 post
             }
-            _ => return "No post found.".to_string(),
+            _ => return Err("No post found".into()),
         };
         post.report(user.id, reason);
         let author_name = self
@@ -1428,7 +1433,69 @@ impl State {
             format!("@{} reported this post by @{}", user.name, author_name),
             Predicate::ReportOpen(post_id),
         );
-        "Report accepted, thank you!".to_string()
+        Ok(())
+    }
+
+    pub fn delete_post(
+        &mut self,
+        principal: Principal,
+        post_id: PostId,
+        versions: Vec<String>,
+    ) -> Result<(), String> {
+        let post = self.posts.get(&post_id).ok_or("no post found")?.clone();
+        if self.principal_to_user(principal).map(|user| user.id) != Some(post.user) {
+            return Err("not authenticated".into());
+        }
+
+        let comments_tree_penalty =
+            post.tree_size as Cycles * CONFIG.post_deletion_penalty_factor as Cycles;
+        let reaction_costs = post
+            .reactions
+            .iter()
+            .filter_map(|(r_id, users)| {
+                CONFIG
+                    .reactions
+                    .iter()
+                    .find(|(id, cost)| id == r_id && *cost > 0)
+                    .map(|(_, cost)| (users, *cost))
+            })
+            .collect::<Vec<_>>();
+
+        let costs: Cycles = CONFIG.post_cost
+            + reaction_costs.iter().map(|(_, cost)| *cost).sum::<i64>()
+            + comments_tree_penalty;
+        if costs > self.users.get(&post.user).ok_or("no user found")?.cycles() {
+            return Err(format!(
+                "not enough cycles (this post requires {} cycles to be deleted)",
+                costs
+            ));
+        }
+
+        // refund rewards
+        for (users, amount) in reaction_costs {
+            for user_id in users {
+                self.transfer(
+                    post.user,
+                    *user_id,
+                    amount,
+                    0,
+                    Destination::Cycles,
+                    format!("rewards refund after deletion of post {}", post.id),
+                )?
+            }
+        }
+
+        // penalize for comments tree destruction
+        self.charge(
+            post.user,
+            comments_tree_penalty,
+            format!("deletion of post {}", post.id),
+        )?;
+        self.posts
+            .get_mut(&post_id)
+            .expect("no post found")
+            .delete(versions);
+        Ok(())
     }
 
     pub fn react(
@@ -1681,6 +1748,93 @@ pub(crate) mod tests {
             u.apply_rewards();
         }
         id
+    }
+
+    #[actix_rt::test]
+    async fn test_post_deletion() {
+        let mut state = State::default();
+
+        let id = create_user(&mut state, pr(0));
+        let upvoter_id = create_user(&mut state, pr(1));
+        let user = state.users.get_mut(&upvoter_id).unwrap();
+        let upvoter_cycles = user.cycles();
+        user.change_karma(1000, "test");
+        assert!(user.trusted());
+        let uid = create_user(&mut state, pr(2));
+        state
+            .users
+            .get_mut(&uid)
+            .unwrap()
+            .change_karma(1000, "test");
+
+        let post_id = add(
+            &mut state,
+            "Test".to_string(),
+            vec![],
+            pr(0),
+            0,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+
+        // Create 2 comments
+        for i in 1..=2 {
+            add(
+                &mut state,
+                "Test".to_string(),
+                vec![],
+                pr(i),
+                0,
+                Some(post_id),
+                None,
+                None,
+            )
+            .unwrap();
+        }
+
+        // React from both users
+        assert!(state.react(pr(1), post_id, 100, 0).is_ok());
+        assert!(state.react(pr(2), post_id, 50, 0).is_ok());
+
+        assert_eq!(
+            state.users.get_mut(&upvoter_id).unwrap().cycles(),
+            // reward + fee + post creation
+            upvoter_cycles - 10 - 1 - 2
+        );
+
+        let versions = vec!["a".into(), "b".into()];
+        assert_eq!(
+            state.delete_post(pr(1), post_id, versions.clone()),
+            Err("not authenticated".into())
+        );
+
+        state
+            .charge(id, state.users.get(&id).unwrap().cycles(), "")
+            .unwrap();
+        assert_eq!(
+            state.delete_post(pr(0), post_id, versions.clone()),
+            Err("not enough cycles (this post requires 37 cycles to be deleted)".into())
+        );
+
+        state
+            .users
+            .get_mut(&id)
+            .unwrap()
+            .change_cycles(1000, "")
+            .unwrap();
+
+        assert_eq!(&state.posts.get(&0).unwrap().body, "Test");
+        assert_eq!(state.delete_post(pr(0), post_id, versions.clone()), Ok(()));
+        assert_eq!(&state.posts.get(&0).unwrap().body, "");
+        assert_eq!(state.posts.get(&0).unwrap().hashes.len(), versions.len());
+
+        assert_eq!(
+            state.users.get_mut(&upvoter_id).unwrap().cycles(),
+            // reward received back
+            upvoter_cycles - 10 - 1 - 2 + 10
+        );
     }
 
     #[test]

@@ -191,14 +191,17 @@ mod tests {
         assert_eq!(reporter_user.cycles(), 998);
         reporter_user.change_cycles(-998, "").unwrap();
         assert_eq!(reporter_user.cycles(), 0);
-        state.report(reporter, post_id, String::new());
+        assert_eq!(
+            state.report(reporter, post_id, String::new()),
+            Err("You need at least 100 cycles to report a post".into())
+        );
         let p = state.posts.get(&post_id).unwrap();
         assert!(&p.report.is_none());
 
         let reporter_user = state.principal_to_user_mut(reporter).unwrap();
         reporter_user.change_cycles(500, "").unwrap();
         assert_eq!(reporter_user.cycles(), 500);
-        state.report(reporter, post_id, String::new());
+        state.report(reporter, post_id, String::new()).unwrap();
 
         // make sure the reporter is correct
         let p = state.posts.get(&post_id).unwrap();
@@ -206,9 +209,10 @@ mod tests {
         assert!(report.reporter == state.principal_to_user(reporter).unwrap().id);
 
         // Another user cannot overwrite the report
-        assert!(state
-            .report(pr(8), post_id, String::new())
-            .contains("already"));
+        assert_eq!(
+            state.report(pr(8), post_id, String::new()),
+            Err("This post is already reported".into())
+        );
         // the reporter is stil lthe same
         assert!(report.reporter == state.principal_to_user(reporter).unwrap().id);
 
@@ -300,7 +304,7 @@ mod tests {
         assert_eq!(user.cycles(), CONFIG.reporting_penalty - CONFIG.post_cost);
 
         let reporter = pr(7);
-        state.report(reporter, post_id, String::new());
+        state.report(reporter, post_id, String::new()).unwrap();
         // set cycles to 777
         let reporter_user = state.principal_to_user_mut(reporter).unwrap();
         reporter_user
