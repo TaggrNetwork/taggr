@@ -1750,6 +1750,62 @@ pub(crate) mod tests {
         id
     }
 
+    #[test]
+    fn test_principal_change() {
+        let mut state = State::default();
+
+        let mut eligigble = HashMap::default();
+        for i in 1..3 {
+            let p = pr(i);
+            let id = create_user(&mut state, p);
+            let user = state.users.get_mut(&id).unwrap();
+            user.change_karma(i as Karma * 111, "test");
+            assert_eq!(user.karma(), CONFIG.trusted_user_min_karma);
+            assert!(user.trusted());
+            eligigble.insert(id, user.karma_to_reward());
+        }
+
+        // mint tokens
+        state.mint(eligigble);
+        assert_eq!(state.ledger.len(), 2);
+        assert_eq!(
+            *state
+                .balances
+                .get(&Account {
+                    owner: pr(1),
+                    subaccount: None
+                })
+                .unwrap(),
+            11100
+        );
+
+        let u_id = state.principal_to_user(pr(1)).unwrap().id;
+        let new_principal_str: String =
+            "yh4uw-lqajx-4dxcu-rwe6s-kgfyk-6dicz-yisbt-pjg7v-to2u5-morox-hae".into();
+        assert!(state
+            .change_principal(pr(1), new_principal_str.clone())
+            .is_ok());
+        let principal = Principal::from_text(new_principal_str).unwrap();
+        assert_eq!(state.principal_to_user(principal).unwrap().id, u_id);
+        assert!(state
+            .balances
+            .get(&Account {
+                owner: pr(1),
+                subaccount: None
+            })
+            .is_none());
+        assert_eq!(
+            *state
+                .balances
+                .get(&Account {
+                    owner: principal,
+                    subaccount: None
+                })
+                .unwrap(),
+            11100 - CONFIG.transaction_fee
+        );
+    }
+
     #[actix_rt::test]
     async fn test_post_deletion() {
         let mut state = State::default();

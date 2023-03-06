@@ -13,6 +13,7 @@ pub struct Config {
     pub twitter: &'static str,
     pub logo: &'static str,
 
+    pub transaction_fee: u64,
     pub token_decimals: u8,
     pub token_symbol: &'static str,
     pub total_supply: Token,
@@ -100,6 +101,7 @@ pub const CONFIG: &Config = &Config {
 
     token_symbol: "TAGGR",
     token_decimals: 2,
+    transaction_fee: 1,
 
     #[cfg(feature = "dev")]
     proposal_approval_threshold: 1,

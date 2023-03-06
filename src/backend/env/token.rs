@@ -121,7 +121,7 @@ fn icrc1_decimals() -> u8 {
 
 #[query]
 fn icrc1_fee() -> u128 {
-    1
+    CONFIG.transaction_fee as u128
 }
 
 #[query]
