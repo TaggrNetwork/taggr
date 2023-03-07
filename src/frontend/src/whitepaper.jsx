@@ -6,8 +6,12 @@ import template from '../../../WHITEPAPER.md';
 
 export const Whitepaper = () => {
     let value = template.match(/\$([a-zA-Z_]+)/g).reduce((acc, e) => {
-        let key = e.slice(1);
-        return acc.replace(e, backendCache.config[key]);
+        const key = e.slice(1);
+        let value = backendCache.config[key];
+        // Remove decimals
+        if (key == "total_supply")
+                value = (value / Math.pow(10, backendCache.config.token_decimals)).toLocaleString();
+        return acc.replace(e, value);
     }, template);
     return <>
         <HeadBar title="White Paper" shareLink="whitepaper" />

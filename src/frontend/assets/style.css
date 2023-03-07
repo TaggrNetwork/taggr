@@ -163,7 +163,6 @@ pre { overflow: scroll;}
 a {
     color: $clickable;
     text-decoration: none; 
-    word-break: break-all;
 }
 
 a:hover { 
@@ -286,7 +285,6 @@ article { overflow-wrap: anywhere; }
 
 .prime {
     line-height: 160%;
-    margin-top: 2em;
     margin-bottom: 2em;
 }
 
@@ -425,6 +423,8 @@ div.thumbnails {
     margin-left: 0.2em;
     margin-right: 0.2em;
 }
+
+.tag { word-break: break-all; }
 
 .small_text { font-size: small; }
 .smaller_text { font-size: smaller; }

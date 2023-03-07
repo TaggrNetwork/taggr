@@ -15,17 +15,18 @@ export const Header = ({subtle, route}) => {
     const [showButtonBar, toggleButtonBar] = React.useState(false);
     const [showRealms, toggleRealms] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
-    React.useEffect(() => { document.getElementById("logo").innerHTML = backendCache.config.logo; }, []);
-    React.useEffect(() => { toggleButtonBar(false); toggleRealms(false) }, [route]);
     const [realmBg, realmFg] = realmColors(user?.current_realm);
     const inboxEmpty = !user || Object.keys(user.inbox).length == 0;
+    const inRealm = user && user.current_realm;
+    React.useEffect(() => { document.getElementById("logo").innerHTML = backendCache.config.logo; }, []);
+    React.useEffect(() => { toggleButtonBar(false); toggleRealms(false) }, [route]);
     return <>
         <header className={`spaced top_half_spaced vcentered ${subtle ? "subtle" : ""}`}>
-            <a href="#/home" id="logo"></a>
+            <a className={!bigScreen() && inRealm ? "desktop_only" : null} href="#/home" id="logo"></a>
             {user && user.realms.length > 0 && !subtle && <ReactionToggleButton classNameArg="left_half_spaced"
                 pressed={showRealms} onClick={() => { toggleRealms(!showRealms); toggleButtonBar(false) }}
-                icon={<span className="large_text"><CarretDown /></span>} />}
-            {user && user.current_realm && <ButtonWithLoading classNameArg="left_half_spaced monospace"
+                icon={<CarretDown classNameArg="large_text" />} />}
+            {inRealm && <ButtonWithLoading classNameArg="left_half_spaced monospace"
                 styleArg={{background: realmBg, padding: "0.2em"}}
                 onClick={async () =>{
                     await api.call("enter_realm", "");

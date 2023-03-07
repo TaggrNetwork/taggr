@@ -74,55 +74,6 @@ fn post_upgrade() {
     set_timer();
 
     // temporary post upgrade logic goes here
-    pub fn validate_username(name: &str) -> Result<(), String> {
-        if name.len() < 2 || name.len() > 16 {
-            return Err("should be between 2 and 16 characters".into());
-        }
-        if !name
-            .chars()
-            .all(|c| char::is_ascii(&c) && char::is_alphanumeric(c))
-        {
-            return Err("should be an alpha-numeric string".into());
-        }
-        if name
-            .chars()
-            .next()
-            .map(|c| !char::is_ascii_alphabetic(&c))
-            .unwrap_or_default()
-        {
-            return Err("first character can't be a number".into());
-        }
-        if name.chars().all(|c| char::is_ascii_digit(&c)) {
-            return Err("should have at least one character".into());
-        }
-        Ok(())
-    }
-    let s = state_mut();
-    for u in s.users.values_mut() {
-        match validate_username(&u.name) {
-            Err(msg) if msg != "taken" && u.id != 0 => {
-                ic_cdk::println!("{} renamed", u.name);
-                u.name = format!("u{}", u.id);
-            }
-            _ => {}
-        }
-    }
-
-    // rename users according to their comments on https://taggr.link/#/thread/18784
-    s.users.get_mut(&759).unwrap().name = "virtualmachine".into();
-
-    // Mint missing tokens to @Um (see https://taggr.link/#/thread/18735)
-    crate::env::token::mint(
-        s,
-        Account {
-            owner: candid::Principal::from_text(
-                "ntzj4-wy4e6-33mt3-56bwa-tm3tr-rtvtf-bofnk-7pv6y-lyynh-hjnwc-tqe",
-            )
-            .unwrap(),
-            subaccount: None,
-        },
-        4300,
-    );
 }
 
 /*
@@ -256,13 +207,6 @@ fn finalize_upgrade() {
                         "Upgrade succeeded: new version is `{}`.",
                         &current[0..8]
                     ));
-
-                    if !proposal.description.contains("#chore") {
-                        state.notify_users(
-                            &|user| user.active_within_weeks(time(), 1),
-                            format!("New release `{}` [was deployed](#/proposals).", &hash[..8]),
-                        );
-                    }
                     Ok(())
                 }
             }

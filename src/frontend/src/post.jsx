@@ -131,7 +131,7 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
 
     if (deletedByModeration) return <h4 className="banner">DELETED VIA MODERATION</h4>;
 
-    let cls = isPrime ? "top_spaced " : "";
+    let cls = "";
     if (!deleted && !isNSFW && !showReport) {
         if (realmPost) cls = "realm_post";
         cls += isGallery ? " gallery_post" : " text_post";

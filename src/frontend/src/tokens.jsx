@@ -40,7 +40,7 @@ export const Tokens = () => {
         {balances.length == 0 && <Loading />}
         {balances.length > 0 && <div className="spaced">
             <h1>Current state</h1>
-            <div className={bigScreen() ? "four_column_grid" : "two_column_grid"}>
+            <div className={`${bigScreen() ? "four_column_grid" : "two_column_grid"} monospace`}>
                 <div className="db_cell">
                     Minted<code>{token(mintedSupply)}</code>
                 </div>
@@ -58,7 +58,7 @@ export const Tokens = () => {
             <div className="row_container bottom_spaced">
                 {balances.slice(0, 100).map(b => <div
                     key={b[0]}
-                    style={{height: "5em", width: percentage(b[1], mintedSupply), background: genColor(b[0]) }}
+                    style={{height: "5em", width: percentage(b[1], mintedSupply), background: holder == b[2] ? "white" : genColor(b[0]) }}
                     onMouseOver={() => setHolder(b[2])}
                     onClick={() => setHolder(b[2])}
                 ></div>)}
