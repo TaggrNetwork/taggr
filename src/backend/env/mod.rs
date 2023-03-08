@@ -924,7 +924,7 @@ impl State {
             .flat_map(|post| post.files.keys())
             .all(|id| id.contains('@'))
         {
-            self.storage.reset();
+            self.logger.info("No blobs on heap left.");
         }
 
         for proposal_id in self
@@ -1060,7 +1060,7 @@ impl State {
                 let blob = self.storage.read(offset, len);
                 match self
                     .storage
-                    .write_to_bucket(&mut self.logger, blob)
+                    .write_to_bucket(&mut self.logger, blob.as_slice())
                     .await
                     .clone()
                 {
