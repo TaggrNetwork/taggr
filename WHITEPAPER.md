@@ -51,7 +51,9 @@ By joining a realm, a user implicitly agrees with its terms and conditions.
 
 ## STALWARTS
 
-Stalwarts are the top `$stalwart_percentage%` of users with the highest karma being active during the last `$min_stalwart_activity_weeks` consecutive weeks, with accounts older than `$min_stalwart_account_age_weeks` weeks. They are marked with ⚔️ on their profiles. They count as trusted members of the community and can carry out moderating actions and can submit proposals.
+Stalwarts are the top `$stalwart_percentage%` of users with the highest karma being active during the last `$min_stalwart_activity_weeks` consecutive weeks, with accounts older than `$min_stalwart_account_age_weeks` weeks.
+They are marked with ⚔️ on their profiles and count as trusted members of the community.
+Stalwarts can carry out moderating actions and submit proposals.
 
 ## The content policy
 

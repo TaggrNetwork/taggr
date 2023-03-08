@@ -48,6 +48,23 @@ export const Profile = ({handle}) => {
                     toggler={() => api.call("toggle_following_user", profile.id).then(api._reloadUser)} />}
             </div>} />
         <UserInfo profile={profile} />
+        {!trusted(profile) && <>
+            <hr />
+            <h2>Bootcamp Progress</h2>
+            <div className="two_column_grid">
+                <div className="db_cell monospace">
+                    KARMA LEFT
+                    <code>{Math.max(0, backendCache.config.trusted_user_min_karma - profile.karma)}</code>
+                </div>
+                <div className="db_cell monospace">
+                    TIME LEFT
+                    <code>{Math.floor(Math.max(0, 
+                        (backendCache.config.trusted_user_min_age_weeks * 7 * day - 
+                            (Number(new Date()) - parseInt(profile.timestamp) / 1000000)) / day
+                    ))} DAYS</code>
+                </div>
+            </div>
+        </>}
         <hr />
         {profile.posts.length > 0 && <h2 className="spaced">Latest posts</h2>}
         <PostFeed feedLoader={async page => {
@@ -66,10 +83,7 @@ export const UserName = ({profile}) => {
         {profile.name}
         {profile.stalwart && <sup className="small_text">⚔️</sup>}
         {isBot && <sup className="small_text">🤖</sup>} 
-        {(profile.karma < backendCache.config.trusted_user_min_karma 
-            || (Number(new Date()) - parseInt(profile.timestamp) / 1000000) 
-                < backendCache.config.trusted_user_min_age_weeks * 7 * 24 * 3600 * 1000) &&
-            <sup className="small_text">*️⃣</sup>} 
+        {!trusted(profile) && <sup className="small_text">*️⃣</sup>} 
     </>;
 }
 
@@ -160,3 +174,13 @@ export const UserInfo = ({profile}) => {
         {realms}
     </div>;
 };
+
+const day = 24 * 3600 * 1000;
+
+const trusted = profile => profile.karma >= backendCache.config.trusted_user_min_karma 
+    && (Number(new Date()) - parseInt(profile.timestamp) / 1000000) >=
+    backendCache.config.trusted_user_min_age_weeks * 7 * day;
+
+const stalwart = profile => profile.karma < backendCache.config.trusted_user_min_karma 
+    || (Number(new Date()) - parseInt(profile.timestamp) / 1000000) 
+    < backendCache.config.trusted_user_min_age_weeks * 7 * day;
