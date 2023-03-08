@@ -99,6 +99,9 @@ fn post_upgrade() {
         u.principal = *s.principals.iter().find(|(_, id)| **id == u.id).unwrap().0;
         u.icp_account = invoices::principal_to_subaccount(&u.principal);
     }
+
+    //  clean up garbage feeds in https://taggr.link/#/thread/18267
+    s.users.get_mut(&83).unwrap().feeds.clear();
 }
 
 /*
