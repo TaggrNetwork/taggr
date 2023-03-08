@@ -7,6 +7,7 @@ const REPO="https://github.com/TaggrNetwork/taggr/commit";
 
 export const Proposals = () => {
     const [proposals, setProposals] = React.useState(null);
+    const [currProp, setCurrProp] = React.useState(-1);
     const [page, setPage] = React.useState(0);
     const [noMoreData, setNoMoreData] = React.useState(false);
     const [showMask, toggleMask] = React.useState(false);
@@ -29,9 +30,10 @@ export const Proposals = () => {
 
     const users = backendCache.users;
 
-    const statusEmoji = status => { return {"Open": "✨", "Rejected": "🟥", "Cancelled": "❌", "Executed": "✅" }[status] };
+    const statusEmoji = status => { return {"OPEN": "✨", "REJECTED": "🟥", "CANCELLED": "❌", "EXECUTED": "✅" }[status] || "⏳" };
 
     const vote = async (proposal_id, adopted) => {
+        setCurrProp(proposal_id);
         const prevStatus = proposals[0].status;
         const result = await api.call("vote_on_proposal", proposal_id, adopted);
         if ("Err" in result) {
@@ -46,7 +48,7 @@ export const Proposals = () => {
             await api.call("execute_upgrade");
             setStatus("Finalizing the upgrade...");
             if (await api.call("finalize_upgrade", lastProposal.payload.Release.hash)) {
-                setStatus("Success!");
+                setStatus(newStatus.toUpperCase());
                 await loadState();
             } else {
                 setStatus("Upgrade execution failed.");
@@ -121,13 +123,14 @@ export const Proposals = () => {
                 const dailyDrop = proposal.voting_power / 100;
                 const t = backendCache.config.proposal_approval_threshold;
                 const days = Math.ceil((proposal.voting_power - (adopted > rejected ? adopted / t : rejected / (100 - t)) * 100) / dailyDrop);
+                const propStatus = currProp == proposal.id && status ? status : proposal.status.toUpperCase();
                 return <div key={proposal.timestamp}
                     className="stands_out column_container">
                     <div className="monospace bottom_half_spaced">ID: <code>{proposal.id}</code></div>
                     <div className="monospace bottom_half_spaced">TYPE: {Object.keys(proposal.payload)[0].toUpperCase()}</div>
                     <div className="monospace bottom_half_spaced">PROPOSER: <a href={`#/user/${proposal.proposer}`}>{`@${users[proposal.proposer]}`}</a></div>
                     <div className="monospace bottom_half_spaced">DATE: {timeAgo(proposal.timestamp)}</div>
-                    <div className="monospace bottom_spaced">STATUS: {statusEmoji(proposal.status)} <span className={open ? "accent" : null}>{status ? status : proposal.status.toUpperCase()}</span></div>
+                    <div className="monospace bottom_spaced">STATUS: {statusEmoji(propStatus)} <span className={open ? "accent" : null}>{propStatus}</span></div>
                     {"Release" in proposal.payload && <div className="monospace bottom_spaced">
                         {commit && <div className="row_container bottom_half_spaced">COMMIT:<a className="monospace left_spaced" href={`${REPO}/${proposal.payload.Release.commit}`}>{commit}</a></div>}
                         <div className="row_container"><span>HASH:</span><code className="left_spaced monospace">{hash}</code></div>

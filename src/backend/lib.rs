@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use candid::Principal;
 use env::{
     canisters::upgrade_main_canister,
     config::CONFIG,
@@ -96,7 +97,13 @@ fn post_upgrade() {
     let s = state_mut();
     s.accounting.invoices.clear();
     for u in s.users.values_mut() {
-        u.principal = *s.principals.iter().find(|(_, id)| **id == u.id).unwrap().0;
+        u.principal = s
+            .principals
+            .clone()
+            .into_iter()
+            .find(|(_, id)| *id == u.id)
+            .unwrap_or_else(|| (Principal::anonymous(), u.id))
+            .0;
         u.icp_account = invoices::principal_to_subaccount(&u.principal);
     }
 
@@ -611,14 +618,10 @@ fn user() {
     reply(resolve_handle(input.into_iter().next()).map(|mut user| {
         let state = state();
         let balance = state
-            .principals
-            .iter()
-            .find_map(|(p, v)| (v == &user.id).then_some(p))
-            .and_then(|p| {
-                state.balances.get(&Account {
-                    owner: *p,
-                    subaccount: None,
-                })
+            .balances
+            .get(&Account {
+                owner: user.principal,
+                subaccount: None,
             })
             .copied()
             .unwrap_or_default();
