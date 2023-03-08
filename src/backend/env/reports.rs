@@ -132,8 +132,8 @@ mod tests {
     use crate::env::tests::*;
     use crate::post::*;
 
-    #[test]
-    fn test_reporting() {
+    #[actix_rt::test]
+    async fn test_reporting() {
         let mut state = State::default();
 
         let p = pr(0);
@@ -162,6 +162,7 @@ mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
 
         let user = state.users.get(&u1).unwrap();
@@ -184,7 +185,8 @@ mod tests {
             None,
             None,
             None,
-        );
+        )
+        .await;
 
         // report should work becasue theuser needs 500 cycles
         let reporter_user = state.principal_to_user_mut(reporter).unwrap();
@@ -298,6 +300,7 @@ mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
 
         let user = state.users.get(&u).unwrap();

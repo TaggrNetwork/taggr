@@ -1833,6 +1833,7 @@ pub(crate) mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
 
         // Create 2 comments
@@ -1847,6 +1848,7 @@ pub(crate) mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
         }
 
@@ -1893,8 +1895,8 @@ pub(crate) mod tests {
         );
     }
 
-    #[test]
-    fn test_realms() {
+    #[actix_rt::test]
+    async fn test_realms() {
         let mut state = State::default();
         let p0 = pr(0);
         let p1 = pr(1);
@@ -2100,6 +2102,7 @@ pub(crate) mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
 
         assert_eq!(state.posts.get(&post_id).unwrap().realm, Some(name.clone()));
@@ -2116,7 +2119,8 @@ pub(crate) mod tests {
                 Some(0),
                 None,
                 None
-            ),
+            )
+            .await,
             Err("not a member of the realm SYNAPSE".to_string())
         );
 
@@ -2131,7 +2135,8 @@ pub(crate) mod tests {
                 Some(0),
                 None,
                 None
-            ),
+            )
+            .await,
             Ok(1)
         );
         assert!(state.realms.get(&name).unwrap().posts.contains(&1));
@@ -2148,6 +2153,7 @@ pub(crate) mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
         let comment_id = add(
             &mut state,
@@ -2159,6 +2165,7 @@ pub(crate) mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
         assert_eq!(state.posts.get(&comment_id).unwrap().realm, None);
 
@@ -2174,7 +2181,8 @@ pub(crate) mod tests {
                 None,
                 Some(realm_name.clone()),
                 None
-            ),
+            )
+            .await,
             Err(format!("not a member of the realm {}", realm_name))
         );
 
@@ -2204,7 +2212,8 @@ pub(crate) mod tests {
                 None,
                 Some(realm_name.clone()),
                 None
-            ),
+            )
+            .await,
             Err(format!("not a member of the realm {}", realm_name))
         );
 
@@ -2221,7 +2230,8 @@ pub(crate) mod tests {
                 None,
                 Some(realm_name.clone()),
                 None
-            ),
+            )
+            .await,
             Ok(4)
         );
 
@@ -2244,7 +2254,8 @@ pub(crate) mod tests {
                 Some("SYNAPSE_X".to_string()),
                 p1,
                 time(),
-            ),
+            )
+            .await,
             Err("you're not in the realm".into()),
         );
 
@@ -2260,7 +2271,8 @@ pub(crate) mod tests {
                 Some("SYNAPSE".to_string()),
                 p1,
                 time(),
-            ),
+            )
+            .await,
             Ok(())
         );
         assert_eq!(
@@ -2281,8 +2293,8 @@ pub(crate) mod tests {
             .unwrap();
     }
 
-    #[test]
-    fn test_tipping() {
+    #[actix_rt::test]
+    async fn test_tipping() {
         let mut state = State::default();
         let p = pr(0);
         let u1 = create_user_with_params(&mut state, p, "user1", true);
@@ -2297,6 +2309,7 @@ pub(crate) mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
 
         let u = state.users.get_mut(&u1).unwrap();
@@ -2386,8 +2399,8 @@ pub(crate) mod tests {
         assert!(state.user("user22").is_none());
     }
 
-    #[test]
-    fn test_personal_feed() {
+    #[actix_rt::test]
+    async fn test_personal_feed() {
         let mut state = State::default();
 
         // create a post author and one post for its principal
@@ -2403,6 +2416,7 @@ pub(crate) mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
         let anon = Principal::anonymous();
 
@@ -2463,6 +2477,7 @@ pub(crate) mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
 
         // make sure the feed contains both posts
@@ -2490,6 +2505,7 @@ pub(crate) mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
 
         // make sure the feed contains the same old posts
@@ -2561,8 +2577,8 @@ pub(crate) mod tests {
         assert_eq!(tags("Support #under_score"), "under_score");
     }
 
-    #[test]
-    fn test_cycles_accounting() {
+    #[actix_rt::test]
+    async fn test_cycles_accounting() {
         let mut state = State::default();
         let p0 = pr(0);
         let post_author_id = create_user(&mut state, p0);
@@ -2576,6 +2592,7 @@ pub(crate) mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
         let p = pr(1);
         let lurker_id = create_user(&mut state, p);
@@ -2665,6 +2682,7 @@ pub(crate) mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
         assert_eq!(
             state.burned_cycles,
@@ -2693,6 +2711,7 @@ pub(crate) mod tests {
             None,
             None
         )
+        .await
         .is_err());
 
         let lurker = state.users.get_mut(&lurker_id).unwrap();

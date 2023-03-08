@@ -77,6 +77,21 @@ fn post_upgrade() {
     state_mut().storage.buckets.clear();
 
     // temporary post upgrade logic goes here
+    for p in state_mut().proposals.iter_mut() {
+        p.bulletins = p
+            .votes
+            .clone()
+            .into_iter()
+            .map(|(p, v, t)| {
+                (
+                    // Only yungsucc changed the principal, so no other failures are expected
+                    state().principal_to_user(p).map(|u| u.id).unwrap_or(660),
+                    v,
+                    t,
+                )
+            })
+            .collect();
+    }
 }
 
 /*
