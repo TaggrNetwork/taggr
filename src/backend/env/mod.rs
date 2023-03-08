@@ -1488,7 +1488,7 @@ impl State {
         // penalize for comments tree destruction
         self.charge(
             post.user,
-            comments_tree_penalty,
+            CONFIG.post_cost + comments_tree_penalty,
             format!("deletion of post {}", post.id),
         )?;
         self.posts
