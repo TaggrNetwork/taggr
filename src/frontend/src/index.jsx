@@ -19,7 +19,7 @@ import { Header } from './header';
 import { NotFound, Unauthorized, microSecsSince, HeadBar, setTitle } from './common';
 import { Settings } from './settings';
 import { Api } from "./api";
-import { Ledger } from "./ledger";
+import { Wallets } from "./wallets";
 import { applyTheme } from "./theme";
 import {Proposals} from "./proposals";
 import {Tokens} from "./tokens";
@@ -95,8 +95,8 @@ const App = () => {
                 <hr />
                 <LoginMasks />
             </article>;
-    } else if (handler == "ledger" || (api._principalId && !api._user)) {
-        content = <Ledger />;
+    } else if (handler == "wallets" || (api._principalId && !api._user)) {
+        content = <Wallets />;
     } else if (handler == "post") {
         const id = parseInt(param);
         const version = parseInt(param2);

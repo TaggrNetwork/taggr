@@ -1,5 +1,6 @@
 use self::invoices::Invoice;
 use self::proposals::Status;
+use self::token::account;
 use self::user::{Notification, Predicate};
 use crate::proposals::Proposal;
 use crate::token::{Account, Token, Transaction};
@@ -446,11 +447,10 @@ impl State {
             return Ok(());
         }
 
-        if let Some(Invoice { paid: true, .. }) = self.buy_cycles(principal).await {
+        if let Ok(Invoice { paid: true, .. }) = self.mint_cycles(principal, 0).await {
             self.new_user(principal, time(), name);
             // After the user has beed created, transfer cycles.
-            self.buy_cycles(principal).await;
-            return Ok(());
+            return self.mint_cycles(principal, 0).await.map(|_| ());
         }
 
         Err("payment missing or the invite is invalid".to_string())
@@ -699,23 +699,12 @@ impl State {
         let base = 10_u64.pow(CONFIG.token_decimals as u32);
         let factor = (circulating_supply as f64 / CONFIG.total_supply as f64 * 10.0) as u64;
         if circulating_supply < CONFIG.total_supply {
-            let user_to_principal = self
-                .principals
-                .iter()
-                .map(|(p, u)| (*u, *p))
-                .collect::<HashMap<_, _>>();
             for (user_id, user_karma) in rewards {
-                let (user, principal) = match (
-                    self.users.get_mut(&user_id),
-                    user_to_principal.get(&user_id),
-                ) {
-                    (Some(user), Some(principal)) => (user, *principal),
+                let user = match self.users.get_mut(&user_id) {
+                    Some(user) => user,
                     _ => continue,
                 };
-                let acc = Account {
-                    owner: principal,
-                    subaccount: None,
-                };
+                let acc = account(user.principal);
                 let minted = (user_karma.max(0) as u64 / (1 << factor)).max(1) * base;
                 user.notify(format!(
                     "{} minted `{}` ${} tokens for you! 💎",
@@ -729,15 +718,13 @@ impl State {
             }
 
             // Mint team tokens
-            for id in &[0, 305] {
-                let acc = match user_to_principal.get(id) {
-                    Some(p) => Account {
-                        owner: *p,
-                        subaccount: None,
-                    },
-                    _ => continue,
-                };
-                let vested = match self.team_tokens.get_mut(id) {
+            for user in [0, 305]
+                .iter()
+                .filter_map(|id| self.users.get(&id).cloned())
+                .collect::<Vec<_>>()
+            {
+                let acc = account(user.principal);
+                let vested = match self.team_tokens.get_mut(&user.id) {
                     Some(balance) if *balance > 0 => {
                         // 1% of circulating supply is vesting.
                         let vested = (circulating_supply / 100).min(*balance);
@@ -761,10 +748,7 @@ impl State {
                     self.logger.info(format!(
                         "Minted `{}` team tokens for @{} (still vesting: `{}`).",
                         vested / 100,
-                        self.users
-                            .get(id)
-                            .map(|u| u.name.clone())
-                            .unwrap_or_default(),
+                        user.name,
                         remaining_balance / 100
                     ));
                 }
@@ -1083,13 +1067,19 @@ impl State {
         moved_blobs
     }
 
-    pub async fn buy_cycles(&mut self, principal: Principal) -> Option<Invoice> {
-        let invoice = match self.accounting.outstanding(&principal).await {
+    pub async fn mint_cycles(
+        &mut self,
+        principal: Principal,
+        kilo_cycles: u64,
+    ) -> Result<Invoice, String> {
+        let invoice = match self.accounting.outstanding(&principal, kilo_cycles).await {
             Ok(val) => val,
             Err(err) => {
-                self.logger
-                    .error(format!("Couldn't generate invoice: {:?}", err));
-                return None;
+                if kilo_cycles == 0 {
+                    self.logger
+                        .error(&format!("Couldn't generate invoice: {:?}", err));
+                }
+                return Err(err);
             }
         };
         let min_cycles_minted = CONFIG.min_cycles_minted;
@@ -1099,8 +1089,7 @@ impl State {
                     ((invoice.paid_e8s as f64 / invoice.e8s as f64) * min_cycles_minted as f64)
                         as i64,
                     "top up with ICP".to_string(),
-                )
-                .expect("top up can't go wrong");
+                )?;
                 let user_name = user.name.clone();
                 self.accounting.close(&principal);
                 self.logger.info(format!(
@@ -1110,7 +1099,7 @@ impl State {
                 ));
             }
         }
-        Some(invoice)
+        Ok(invoice)
     }
 
     pub fn clear_notifications(&mut self, principal: Principal, ids: Vec<String>) {
@@ -1275,15 +1264,8 @@ impl State {
             .cloned()
             .collect::<Vec<_>>();
         for acc in accounts {
-            crate::token::move_funds(
-                self,
-                &acc,
-                Account {
-                    owner: new_principal,
-                    subaccount: acc.subaccount.clone(),
-                },
-            )
-            .map_err(|err| format!("couldn't transfer token funds: {:?}", err))?;
+            crate::token::move_funds(self, &acc, account(new_principal))
+                .map_err(|err| format!("couldn't transfer token funds: {:?}", err))?;
         }
         Ok(())
     }
@@ -1709,6 +1691,13 @@ pub fn heap_address() -> (u64, usize) {
     (offset, len)
 }
 
+pub fn id() -> Principal {
+    #[cfg(test)]
+    return Principal::anonymous();
+    #[cfg(not(test))]
+    ic_cdk::id()
+}
+
 pub fn time() -> u64 {
     #[cfg(test)]
     return CONFIG.trusted_user_min_age_weeks * WEEK + 1;
@@ -1768,16 +1757,7 @@ pub(crate) mod tests {
         // mint tokens
         state.mint(eligigble);
         assert_eq!(state.ledger.len(), 2);
-        assert_eq!(
-            *state
-                .balances
-                .get(&Account {
-                    owner: pr(1),
-                    subaccount: None
-                })
-                .unwrap(),
-            11100
-        );
+        assert_eq!(*state.balances.get(&account(pr(1))).unwrap(), 11100);
 
         let u_id = state.principal_to_user(pr(1)).unwrap().id;
         let new_principal_str: String =
@@ -1787,21 +1767,9 @@ pub(crate) mod tests {
             .is_ok());
         let principal = Principal::from_text(new_principal_str).unwrap();
         assert_eq!(state.principal_to_user(principal).unwrap().id, u_id);
-        assert!(state
-            .balances
-            .get(&Account {
-                owner: pr(1),
-                subaccount: None
-            })
-            .is_none());
+        assert!(state.balances.get(&account(pr(1))).is_none());
         assert_eq!(
-            *state
-                .balances
-                .get(&Account {
-                    owner: principal,
-                    subaccount: None
-                })
-                .unwrap(),
+            *state.balances.get(&account(principal)).unwrap(),
             11100 - CONFIG.transaction_fee
         );
     }

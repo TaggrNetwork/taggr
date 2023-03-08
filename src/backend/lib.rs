@@ -6,7 +6,6 @@ use env::{
     config::CONFIG,
     post::{Extension, Post, PostId},
     proposals::{Payload, Release, Status},
-    token::Account,
     user::{User, UserId},
     *,
 };
@@ -19,6 +18,7 @@ use ic_cdk::{
     caller, id, println, spawn, timer,
 };
 use ic_cdk_macros::*;
+use ic_ledger_types::AccountIdentifier;
 use serde_bytes::ByteBuf;
 
 mod assets;
@@ -102,7 +102,8 @@ fn post_upgrade() {
             .iter()
             .find_map(|(p, id)| (id == &u.id).then(|| *p))
             .unwrap_or(Principal::anonymous());
-        u.icp_account = invoices::principal_to_subaccount(&u.principal);
+        let subacc = invoices::principal_to_subaccount(&u.principal);
+        u.account = AccountIdentifier::new(&id(), &subacc).to_string();
     }
 
     //  clean up garbage feeds in https://taggr.link/#/thread/18267
@@ -303,17 +304,16 @@ fn change_principal() {
 
 #[export_name = "canister_update update_user"]
 fn update_user() {
-    let (about, account, principals, settings): (String, String, Vec<String>, String) =
-        parse(&arg_data_raw());
+    let (about, principals, settings): (String, Vec<String>, String) = parse(&arg_data_raw());
     let state = state_mut();
     let mut response: Result<(), String> = Ok(());
-    if !User::valid_info(&about, &account, &settings) {
+    if !User::valid_info(&about, &settings) {
         response = Err("invalid user info".to_string());
         reply(response);
         return;
     }
     if let Some(user) = state.principal_to_user_mut(caller()) {
-        user.update(about, account, principals, settings);
+        user.update(about, principals, settings);
     } else {
         response = Err("no user found".into());
     }
@@ -328,9 +328,12 @@ fn create_user() {
     });
 }
 
-#[export_name = "canister_update buy_cycles"]
-fn buy_cycles() {
-    spawn(async { reply(state_mut().buy_cycles(caller()).await) });
+#[export_name = "canister_update mint_cycles"]
+fn mint_cycles() {
+    spawn(async {
+        let kilo_cycles: u64 = parse(&arg_data_raw());
+        reply(state_mut().mint_cycles(caller(), kilo_cycles).await)
+    });
 }
 
 #[export_name = "canister_update create_invite"]
@@ -615,15 +618,11 @@ fn user() {
     let input: Vec<String> = parse(&arg_data_raw());
     reply(resolve_handle(input.into_iter().next()).map(|mut user| {
         let state = state();
-        let balance = state
+        user.balance = state
             .balances
-            .get(&Account {
-                owner: user.principal,
-                subaccount: None,
-            })
+            .get(&token::account(user.principal))
             .copied()
             .unwrap_or_default();
-        user.balance = balance;
         user
     }));
 }

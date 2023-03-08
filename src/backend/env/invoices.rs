@@ -62,34 +62,45 @@ impl Invoices {
         self.invoices.remove(invoice_id);
     }
 
-    pub async fn outstanding(&mut self, invoice_id: &Principal) -> Result<Invoice, String> {
+    pub async fn outstanding(
+        &mut self,
+        invoice_id: &Principal,
+        kilo_cycles: u64,
+    ) -> Result<Invoice, String> {
         let invoice = match self.invoices.get_mut(invoice_id) {
             Some(invoice) => invoice,
             None => {
                 let invoice = self.create_invoice(*invoice_id).await?;
                 self.invoices.insert(*invoice_id, invoice);
-                return Ok(self
-                    .invoices
-                    .get_mut(invoice_id)
-                    .expect("no invoice found")
-                    .clone());
+                let invoice = self.invoices.get_mut(invoice_id).expect("no invoice found");
+                if kilo_cycles == 0 {
+                    return Ok(invoice.clone());
+                }
+                invoice
             }
         };
         if invoice.paid {
             return Ok(invoice.clone());
         }
         let balance = account_balance(invoice.account).await;
-        if balance >= Tokens::from_e8s(invoice.e8s) {
+        let costs = if kilo_cycles == 0 {
+            balance
+        } else {
+            Tokens::from_e8s(kilo_cycles * invoice.e8s)
+        };
+        if balance >= costs {
             transfer_raw(
                 MAINNET_LEDGER_CANISTER_ID,
-                balance,
+                costs,
                 main_account(),
                 Memo(0),
                 Some(invoice.sub_account),
             )
             .await?;
             invoice.paid = true;
-            invoice.paid_e8s = balance.e8s();
+            invoice.paid_e8s = costs.e8s();
+        } else if kilo_cycles > 0 {
+            return Err("ICP balance too low".into());
         }
         Ok(invoice.clone())
     }

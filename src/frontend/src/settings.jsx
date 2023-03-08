@@ -6,7 +6,6 @@ export const Settings = ({invite = null}) => {
     const [principal, setPrincipal] = React.useState(api._principalId);
     const [name, setName] = React.useState("");
     const [about, setAbout] = React.useState("");
-    const [account, setAccount] = React.useState("");
     const [settings, setSettings] = React.useState({});
     const [controllers, setControllers] = React.useState("");
     const [label, setLabel] = React.useState(null);
@@ -16,7 +15,6 @@ export const Settings = ({invite = null}) => {
     React.useEffect(() => {
         if (!user) return;
         setAbout(user.about);
-        setAccount(user.account);
         setControllers(user.controllers.join("\n"));
         setSettings(user.settings);
     }, [user])
@@ -37,7 +35,7 @@ export const Settings = ({invite = null}) => {
             }
         }
         const principal_ids = controllers.split("\n").map(v => v.trim()).filter(id => id.length > 0);
-        const response = await api.call("update_user", about, account, principal_ids, JSON.stringify(settings));
+        const response = await api.call("update_user", about, principal_ids, JSON.stringify(settings));
         if ("Err" in response) {
             alert(`Error: ${response.Err}`);
             return;
@@ -63,10 +61,6 @@ export const Settings = ({invite = null}) => {
             <div className="column_container bottom_spaced">
                 <div className="bottom_half_spaced">ABOUT YOU</div>
                 <input placeholder="you can use markdown, URLs, hashtags, ..." className="monospace" type="text" value={about} onChange={event => setAbout(event.target.value)} />
-            </div>
-            <div className="column_container bottom_spaced">
-                <div className="bottom_half_spaced">ICP ACCOUNT</div>
-                <input placeholder="used for reward payouts" className="monospace small_text" type="text" value={account} onChange={event => setAccount(event.target.value)} />
             </div>
             <div className="column_container bottom_spaced">
                 <div className="bottom_half_spaced">COLOR THEME</div>

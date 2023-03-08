@@ -1,5 +1,5 @@
 import * as React from "react";
-import { intFromBEBytes, timeAgo, hoursTillNext, bigScreen, HeadBar, userList, token, UserLink } from "./common";
+import { ICPAccountBalance, intFromBEBytes, timeAgo, hoursTillNext, bigScreen, HeadBar, userList, token, UserLink, icpCode } from "./common";
 import {Content} from "./content";
 
 const show = (number, unit = null) => <code>{number.toLocaleString()}{unit}</code>;
@@ -18,8 +18,8 @@ export const Dashboard = ({fullMode}) => {
                     <div className="db_cell"><label>💬 POSTS</label>{show(stats.posts + stats.comments)}</div>
                     <div className="db_cell"><label>💾 APP STATE</label>{sizeMb(stats.state_size + stats.buckets.reduce((acc, [, e]) => acc + e, 0), "xx_large_text")}</div>
                     <div className="db_cell"><label>💎 TOKEN SUPPLY</label><code className="xx_large_text">{token(stats.circulating_supply)}</code></div>
-                    <div className="db_cell"><label>💰 REWARDS SHARED</label>{icp(stats.total_rewards_shared)}</div>
-                    <div className="db_cell"><label>💵 REVENUE SHARED</label>{icp(stats.total_revenue_shared)}</div>
+                    <div className="db_cell"><label>💰 REWARDS SHARED</label>{icpCode(stats.total_rewards_shared)}</div>
+                    <div className="db_cell"><label>💵 REVENUE SHARED</label>{icpCode(stats.total_revenue_shared)}</div>
                 </div>
                 <a className="top_spaced bottom_spaced" href="/#/dashboard">DASHBOARD &#x279C;</a>
             </div>}
@@ -34,14 +34,14 @@ export const Dashboard = ({fullMode}) => {
                     <div className="db_cell"><label>💬 COMMENTS</label>{show(stats.comments)}</div>
                     <div className="db_cell"><label>🌱 BOOTCAMPERS</label>{show(stats.bootcamp_users)}</div>
                     <div className="db_cell"><label>💾 APP STATE</label>{sizeMb(stats.state_size + stats.buckets.reduce((acc, [, e]) => acc + e, 0), "xx_large_text")}</div>
-                    <div className="db_cell"><label>🏦 <a href={`https://dashboard.internetcomputer.org/account/${stats.account}`}>TREASURY</a></label><TreasuryCycleBalance address={stats.account} /></div>
+                    <div className="db_cell"><label>🏦 <a href={`https://dashboard.internetcomputer.org/account/${stats.account}`}>TREASURY</a></label><ICPAccountBalance address={stats.account} /></div>
                     <div className="db_cell"><label>⌛️ DISTRIBUTION</label><code className="xx_large_text">{`${hoursTillNext(distribution_interval_hours, last_distribution)}h`}</code></div>
                     <div className="db_cell"><label>⚡️ CYCLES SUPPLY</label>{show(stats.cycles)}</div>
                     <div className="db_cell"><label>🔥 CYCLES BURNED</label>{show(stats.burned_cycles_total)}</div>
                     <div className="db_cell"><label>💵 WEEK'S REVENUE</label>{show(stats.burned_cycles)}</div>
                     <div className="db_cell"><label>💎 TOKEN SUPPLY</label><code className="xx_large_text">{token(stats.circulating_supply)}</code></div>
-                    <div className="db_cell"><label>💰 REWARDS SHARED</label>{icp(stats.total_rewards_shared)}</div>
-                    <div className="db_cell"><label>💵 REVENUE SHARED</label>{icp(stats.total_revenue_shared)}</div>
+                    <div className="db_cell"><label>💰 REWARDS SHARED</label>{icpCode(stats.total_rewards_shared)}</div>
+                    <div className="db_cell"><label>💵 REVENUE SHARED</label>{icpCode(stats.total_revenue_shared)}</div>
                 </div>
             </div>}
         {fullMode &&
@@ -120,12 +120,6 @@ const level2icon = level => {
 
 const sizeMb = size => <code className="xx_large_text">{Math.ceil(parseInt(size) / 1024 / 1024).toLocaleString()}MB</code>;
 
-const TreasuryCycleBalance = ({address}) => {
-    const [e8s, setE8s] = React.useState(0);
-    React.useEffect(() => { api.account_balance(address).then(setE8s); }, [address])
-    return icp(e8s);
-}
-
 const CycleBalance = ({id}) => {
     const [cycles, setCycles] = React.useState(-1);
     React.useEffect(() => {
@@ -134,4 +128,3 @@ const CycleBalance = ({id}) => {
     return <code className="xx_large_text">{show(cycles/ 10**12, "T")}</code>
 }
 
-const icp = e8s => <code className="xx_large_text">{Math.floor(parseInt(e8s) / 100000 / 1000).toLocaleString()} ICP</code>;

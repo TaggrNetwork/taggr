@@ -55,7 +55,7 @@ export const Header = ({subtle, route}) => {
             {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/user/${user.name}`}>👤 {api._user.name.toUpperCase()}</a>}
             {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/realms`}>🎭 REALMS</a>}
             {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/bookmarks`}>📑 BOOKMARKS</a>}
-            {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/ledger">📒 LEDGER</a>}
+            {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/wallets">💳 WALLETS</a>}
             {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/invites">🎟 INVITES</a>}
             {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/settings">⚙️ SETTINGS</a>}
             <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/dashboard">📊 DASHBOARD</a>

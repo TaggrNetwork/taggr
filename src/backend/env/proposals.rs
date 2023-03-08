@@ -1,6 +1,7 @@
-use crate::token::{Account, Token};
+use crate::token::Token;
 
 use super::config::CONFIG;
+use super::token::account;
 use super::user::Predicate;
 use super::{time, HOUR};
 use super::{user::UserId, State};
@@ -50,10 +51,7 @@ impl Proposal {
         }
         let balance = state
             .balances
-            .get(&Account {
-                owner: principal,
-                subaccount: None,
-            })
+            .get(&account(principal))
             .ok_or_else(|| "only token holders can vote".to_string())?;
 
         self.bulletins.push((user.id, approve, *balance));
@@ -124,10 +122,7 @@ impl Proposal {
                     let receiver = Principal::from_text(receiver).map_err(|e| e.to_string())?;
                     crate::token::mint(
                         state,
-                        Account {
-                            owner: receiver,
-                            subaccount: None,
-                        },
+                        account(receiver),
                         *tokens * 10_u64.pow(CONFIG.token_decimals as u32),
                     );
                     state.logger.info(format!(
@@ -478,14 +473,7 @@ mod tests {
         for i in 1..11 {
             let p = pr(i);
             assert_eq!(
-                state
-                    .balances
-                    .get(&Account {
-                        owner: p,
-                        subaccount: None
-                    })
-                    .copied()
-                    .unwrap_or_default(),
+                state.balances.get(&account(p)).copied().unwrap_or_default(),
                 100000
             )
         }
@@ -549,13 +537,7 @@ mod tests {
         );
 
         let p = pr(77);
-        state.balances.insert(
-            Account {
-                owner: p,
-                subaccount: None,
-            },
-            10000000,
-        );
+        state.balances.insert(account(p), 10000000);
         assert_eq!(
             vote_on_proposal(&mut state, 0, p, prop_id, false).await,
             Err("no user found".to_string())

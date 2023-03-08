@@ -1,5 +1,5 @@
 import * as React from "react";
-import { timeAgo, NotFound, ToggleButton, commaSeparated, Loading, RealmSpan, HeadBar, userList, bigScreen } from './common';
+import { timeAgo, NotFound, ToggleButton, commaSeparated, Loading, RealmSpan, HeadBar, userList, bigScreen, tokenBalance } from './common';
 import {Content} from "./content";
 import {Journal} from "./icons";
 import {PostFeed} from "./post_feed";
@@ -140,7 +140,6 @@ export const UserInfo = ({profile}) => {
         </div>
         : null;
     const inviter = profile.invited_by;
-    const base = Math.pow(10, backendCache.config.token_decimals);
     return <div className="spaced">
         {profile.about && <>
             <Content classNameArg="larger_text " value={profile.about} />
@@ -179,7 +178,7 @@ export const UserInfo = ({profile}) => {
             </div>
             <div className="db_cell">
                 TOKENS
-                <code>{(profile.balance / base).toLocaleString()}</code>
+                <code>{tokenBalance(profile)}</code>
             </div>
             {followees}
             {followers}

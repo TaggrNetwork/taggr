@@ -131,10 +131,7 @@ fn icrc1_total_supply() -> u128 {
 
 #[query]
 fn icrc1_minting_account() -> Option<Account> {
-    Some(Account {
-        owner: Principal::anonymous(),
-        subaccount: None,
-    })
+    Some(account(Principal::anonymous()))
 }
 
 #[query]
@@ -248,6 +245,13 @@ fn transfer(
     Ok(0)
 }
 
+pub fn account(owner: Principal) -> Account {
+    Account {
+        owner,
+        subaccount: None,
+    }
+}
+
 pub fn mint(state: &mut State, account: Account, tokens: Token) {
     state
         .balances
@@ -309,10 +313,7 @@ mod tests {
                 pr(0),
                 TransferArgs {
                     from_subaccount: None,
-                    to: Account {
-                        owner: pr(1),
-                        subaccount: None
-                    },
+                    to: account(pr(1)),
                     amount: 1,
                     fee: Some(1),
                     memo: None,
@@ -331,10 +332,7 @@ mod tests {
                 pr(0),
                 TransferArgs {
                     from_subaccount: None,
-                    to: Account {
-                        owner: pr(1),
-                        subaccount: None
-                    },
+                    to: account(pr(1)),
                     amount: 1,
                     fee: Some(1),
                     memo: None,
@@ -351,10 +349,7 @@ mod tests {
                 pr(0),
                 TransferArgs {
                     from_subaccount: None,
-                    to: Account {
-                        owner: pr(1),
-                        subaccount: None
-                    },
+                    to: account(pr(1)),
                     amount: 1,
                     fee: Some(1),
                     memo: None,
@@ -373,10 +368,7 @@ mod tests {
                 Principal::anonymous(),
                 TransferArgs {
                     from_subaccount: None,
-                    to: Account {
-                        owner: pr(1),
-                        subaccount: None
-                    },
+                    to: account(pr(1)),
                     amount: 1,
                     fee: Some(1),
                     memo: None,
@@ -389,13 +381,7 @@ mod tests {
             }))
         );
 
-        state.balances.insert(
-            Account {
-                owner: pr(0),
-                subaccount: None,
-            },
-            1000,
-        );
+        state.balances.insert(account(pr(0)), 1000);
 
         assert_eq!(
             transfer(
@@ -404,10 +390,7 @@ mod tests {
                 pr(0),
                 TransferArgs {
                     from_subaccount: None,
-                    to: Account {
-                        owner: pr(1),
-                        subaccount: None
-                    },
+                    to: account(pr(1)),
                     amount: 500,
                     fee: Some(1),
                     memo: None,
@@ -416,20 +399,8 @@ mod tests {
             ),
             Ok(0),
         );
-        assert_eq!(
-            state.balances.get(&Account {
-                owner: pr(0),
-                subaccount: None
-            }),
-            Some(&(1000 - 500 - 1))
-        );
-        assert_eq!(
-            state.balances.get(&Account {
-                owner: pr(1),
-                subaccount: None
-            }),
-            Some(&500)
-        );
+        assert_eq!(state.balances.get(&account(pr(0))), Some(&(1000 - 500 - 1)));
+        assert_eq!(state.balances.get(&account(pr(1))), Some(&500));
 
         assert_eq!(
             transfer(
@@ -438,10 +409,7 @@ mod tests {
                 pr(0),
                 TransferArgs {
                     from_subaccount: None,
-                    to: Account {
-                        owner: Principal::anonymous(),
-                        subaccount: None
-                    },
+                    to: icrc1_minting_account().unwrap(),
                     amount: 490,
                     fee: Some(1),
                     memo: None,
@@ -451,19 +419,10 @@ mod tests {
             Ok(0),
         );
         assert_eq!(
-            state.balances.get(&Account {
-                owner: pr(0),
-                subaccount: None
-            }),
+            state.balances.get(&account(pr(0))),
             Some(&(1000 - 500 - 1 - 490 - 1))
         );
-        assert_eq!(
-            state.balances.get(&Account {
-                owner: Principal::anonymous(),
-                subaccount: None
-            }),
-            None,
-        );
+        assert_eq!(state.balances.get(&icrc1_minting_account().unwrap()), None,);
 
         assert_eq!(
             transfer(
@@ -472,10 +431,7 @@ mod tests {
                 pr(0),
                 TransferArgs {
                     from_subaccount: None,
-                    to: Account {
-                        owner: pr(0),
-                        subaccount: None
-                    },
+                    to: account(pr(0)),
                     amount: 490,
                     fee: Some(1),
                     memo: None,
