@@ -96,14 +96,12 @@ fn post_upgrade() {
 
     let s = state_mut();
     s.accounting.invoices.clear();
+    let principals = s.principals.clone();
     for u in s.users.values_mut() {
-        u.principal = s
-            .principals
-            .clone()
-            .into_iter()
-            .find(|(_, id)| *id == u.id)
-            .unwrap_or_else(|| (Principal::anonymous(), u.id))
-            .0;
+        u.principal = principals
+            .iter()
+            .find_map(|(p, id)| (id == &u.id).then(|| *p))
+            .unwrap_or(Principal::anonymous());
         u.icp_account = invoices::principal_to_subaccount(&u.principal);
     }
 
