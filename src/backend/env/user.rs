@@ -1,4 +1,5 @@
 use super::*;
+use ic_ledger_types::Subaccount;
 use serde::{Deserialize, Serialize};
 
 pub type UserId = u64;
@@ -44,10 +45,22 @@ pub struct User {
     pub current_realm: Option<String>,
     pub balance: Token,
     pub active_weeks: u32,
+    #[serde(default = "set_ic_acc")]
+    pub icp_account: Subaccount,
+    #[serde(default = "set_ic_principal")]
+    pub principal: Principal,
+}
+
+// TODO: remove
+fn set_ic_acc() -> Subaccount {
+    invoices::principal_to_subaccount(&Principal::anonymous())
+}
+fn set_ic_principal() -> Principal {
+    Principal::anonymous()
 }
 
 impl User {
-    pub fn new(id: UserId, timestamp: u64, name: String) -> Self {
+    pub fn new(principal: Principal, id: UserId, timestamp: u64, name: String) -> Self {
         Self {
             id,
             name,
@@ -74,6 +87,8 @@ impl User {
             inbox: Default::default(),
             balance: 0,
             active_weeks: 0,
+            icp_account: invoices::principal_to_subaccount(&principal),
+            principal,
         }
     }
 

@@ -413,7 +413,7 @@ impl State {
 
     fn new_user(&mut self, principal: Principal, timestamp: u64, name: String) -> UserId {
         let id = self.new_user_id();
-        let mut user = User::new(id, timestamp, name);
+        let mut user = User::new(principal, id, timestamp, name);
         user.notify(format!("**Welcome!** 🎉 Use #{} as your personal blog, micro-blog or a photo blog. Use #hashtags to connect with others. Make sure you understand [how {0} works](/#/whitepaper). And finally, [say hello](#/new) and start earning karma!", CONFIG.name));
         self.principals.insert(principal, user.id);
         self.logger

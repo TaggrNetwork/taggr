@@ -33,7 +33,7 @@ pub struct Invoice {
 
 #[derive(Deserialize, Default, Serialize)]
 pub struct Invoices {
-    invoices: HashMap<Principal, Invoice>,
+    pub invoices: HashMap<Principal, Invoice>,
 }
 
 impl Invoices {
@@ -44,7 +44,8 @@ impl Invoices {
 
     async fn create_invoice(&mut self, invoice_id: Principal) -> Result<Invoice, String> {
         let time = time();
-        let (sub_account, account) = user_subaccount(invoice_id);
+        let sub_account = principal_to_subaccount(&invoice_id);
+        let account = AccountIdentifier::new(&id(), &sub_account);
         let invoice = Invoice {
             paid: false,
             e8s: get_xdr_in_e8s().await?,
@@ -174,19 +175,6 @@ async fn account_balance(account: AccountIdentifier) -> Tokens {
     balance
 }
 
-pub fn user_subaccount(principal: Principal) -> (Subaccount, AccountIdentifier) {
-    let mut hash = [0_u8; 32];
-    principal
-        .as_slice()
-        .iter()
-        .cycle()
-        .take(hash.len())
-        .enumerate()
-        .for_each(|(i, byte)| hash[i] = *byte);
-    let sub_account = Subaccount(hash);
-    (sub_account, AccountIdentifier::new(&id(), &sub_account))
-}
-
 pub async fn get_xdr_in_e8s() -> Result<u64, String> {
     let (IcpXdrConversionRateCertifiedResponse {
         data: IcpXdrConversionRate {
@@ -253,7 +241,7 @@ async fn notify(canister_id: Principal, block_index: u64) -> Result<u128, String
     result.map_err(|err| format!("CMC notification failed: {:?}", err))
 }
 
-fn principal_to_subaccount(principal_id: &Principal) -> Subaccount {
+pub fn principal_to_subaccount(principal_id: &Principal) -> Subaccount {
     let mut subaccount = [0; std::mem::size_of::<Subaccount>()];
     let principal_id = principal_id.as_slice();
     subaccount[0] = principal_id.len() as u8;

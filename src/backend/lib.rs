@@ -92,6 +92,13 @@ fn post_upgrade() {
             })
             .collect();
     }
+
+    let s = state_mut();
+    s.accounting.invoices.clear();
+    for u in s.users.values_mut() {
+        u.principal = *s.principals.iter().find(|(_, id)| **id == u.id).unwrap().0;
+        u.icp_account = invoices::principal_to_subaccount(&u.principal);
+    }
 }
 
 /*
