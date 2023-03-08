@@ -73,6 +73,9 @@ fn post_upgrade() {
     state_mut().load();
     set_timer();
 
+    #[cfg(feature = "dev")]
+    state_mut().storage.buckets.clear();
+
     // temporary post upgrade logic goes here
 }
 
@@ -360,7 +363,7 @@ fn cancel_proposal() {
 }
 
 #[update]
-fn add_post(
+async fn add_post(
     body: String,
     blobs: Vec<(String, Blob)>,
     parent: Option<PostId>,
@@ -378,10 +381,11 @@ fn add_post(
         realm,
         extension,
     )
+    .await
 }
 
 #[update]
-fn edit_post(
+async fn edit_post(
     id: PostId,
     body: String,
     blobs: Vec<(String, Blob)>,
@@ -398,6 +402,7 @@ fn edit_post(
         caller(),
         api::time(),
     )
+    .await
 }
 
 #[export_name = "canister_update delete_post"]

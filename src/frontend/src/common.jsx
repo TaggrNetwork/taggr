@@ -191,7 +191,7 @@ export const loadPostBlobs = async (files) => {
         const [offset, len] = files[id];
         const arg = Buffer.from(intToBEBytes(offset).concat(intToBEBytes(len)));
         // This allows us to see the bucket pics in dev mode.
-        const api = bucket_id ? window.mainnet_api : window.api;
+        const api = backendCache.stats.buckets.every(([id, ]) => id != bucket_id) ? window.mainnet_api : window.api;
         return api.query_raw(bucket_id, "read", arg).then(blob => [blobId, blob]);
     }));
     return blobs.reduce((acc, [blobId, blob]) => {

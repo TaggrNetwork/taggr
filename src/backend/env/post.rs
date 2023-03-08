@@ -113,13 +113,35 @@ impl Post {
         Ok(())
     }
 
-    pub fn save_blobs(&mut self, state: &mut State, blobs: Vec<(String, Blob)>) {
+    pub async fn save_blobs(
+        &mut self,
+        state: &mut State,
+        blobs: Vec<(String, Blob)>,
+    ) -> Result<(), String> {
         for (id, blob) in blobs.into_iter() {
-            // only if the hash is really new, add it.
-            if self.files.keys().all(|file_id| !file_id.contains(&id)) {
-                self.files.insert(id, state.storage.write(&blob));
+            // only if the id is new, add it.
+            if self.files.keys().any(|file_id| file_id.contains(&id)) {
+                continue;
             }
+            match state
+                .storage
+                .write_to_bucket(&mut state.logger, blob.as_slice())
+                .await
+                .clone()
+            {
+                Ok((bucket_id, offset)) => {
+                    self.files
+                        .insert(format!("{}@{}", id, bucket_id), (offset, blob.len()));
+                }
+                Err(err) => {
+                    state
+                        .logger
+                        .error(format!("Couldn't write a blob to bucket: {:?}", err));
+                    return Err(err);
+                }
+            };
         }
+        Ok(())
     }
 
     pub fn vote_on_report(&mut self, stalwarts: usize, stalwart: UserId, confirmed: bool) {
@@ -214,7 +236,7 @@ impl Post {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn edit(
+pub async fn edit(
     state: &mut State,
     id: PostId,
     body: String,
@@ -242,7 +264,7 @@ pub fn edit(
     post.body = body;
     post.valid(&blobs)?;
     let files_before = post.files.len();
-    post.save_blobs(state, blobs);
+    post.save_blobs(state, blobs).await?;
     let costs = post.costs(post.files.len().saturating_sub(files_before));
     state.charge(user_id, costs, format!("editing of post {}", id))?;
     post.patches.push((post.timestamp, patch));
@@ -276,7 +298,7 @@ pub fn edit(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn add(
+pub async fn add(
     state: &mut State,
     body: String,
     blobs: Vec<(String, Blob)>,
@@ -352,6 +374,7 @@ pub fn add(
     post.valid(&blobs)?;
     let trusted_user = user.trusted();
     state.charge(user_id, costs, "new post".to_string())?;
+    post.save_blobs(state, blobs).await?;
     let id = state.new_post_id();
     let user = state.users.get_mut(&user_id).expect("no user found");
     user.posts.push(id);
@@ -372,7 +395,6 @@ pub fn add(
             state.spend_to_user_karma(parent_post_author, CONFIG.response_reward, log)
         }
     }
-    post.save_blobs(state, blobs);
     state.posts.insert(post.id, post.clone());
     notify_about(state, &post);
 

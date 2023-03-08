@@ -31,10 +31,6 @@ impl Storage {
         self.grow_to_fit(0);
     }
 
-    pub fn reset(&mut self) {
-        self.end = INITIAL_OFFSET;
-    }
-
     pub fn temporal_write(&mut self, blob: &[u8]) -> (u64, usize) {
         self.grow_to_fit(blob.len() as u64);
         let offset = self.end;
@@ -95,10 +91,10 @@ impl Storage {
     pub async fn write_to_bucket(
         &mut self,
         logger: &mut Logger,
-        blob: Vec<u8>,
+        blob: &[u8],
     ) -> Result<(Principal, u64), String> {
         let id = self.allocate_space(CONFIG.max_bucket_size, logger).await?;
-        let response = call_raw(id, "write", &blob, 0)
+        let response = call_raw(id, "write", blob, 0)
             .await
             .map_err(|err| format!("couldn't call write on a bucket: {:?}", err))?;
         let mut offset_bytes: [u8; 8] = Default::default();
