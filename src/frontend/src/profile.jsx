@@ -1,5 +1,5 @@
 import * as React from "react";
-import { timeAgo, NotFound, ToggleButton, commaSeparated, Loading, RealmSpan, HeadBar, userList } from './common';
+import { timeAgo, NotFound, ToggleButton, commaSeparated, Loading, RealmSpan, HeadBar, userList, bigScreen } from './common';
 import {Content} from "./content";
 import {Journal} from "./icons";
 import {PostFeed} from "./post_feed";
@@ -48,17 +48,38 @@ export const Profile = ({handle}) => {
                     toggler={() => api.call("toggle_following_user", profile.id).then(api._reloadUser)} />}
             </div>} />
         <UserInfo profile={profile} />
+        {trusted(profile) && !stalwart(profile) && !isBot(profile) && <>
+            <hr />
+            <h2>Stalwart Progress</h2>
+            <div className={bigScreen() ? "four_column_grid" : "two_column_grid"}>
+                <div className="db_cell monospace">
+                    KARMA NEEDED
+                    <code>{Math.max(0, backendCache.stats.stalwarts[backendCache.stats.stalwarts.length-1] - profile.karma)}</code>
+                </div>
+                <div className="db_cell monospace">
+                    AGE NEEDED
+                    <code>{Math.ceil(Math.max(0, 
+                        (backendCache.config.min_stalwart_account_age_weeks * 7 * day - 
+                            (Number(new Date()) - parseInt(profile.timestamp) / 1000000)) / day / 7
+                    ))} WEEKS</code>
+                </div>
+                <div className="db_cell monospace">
+                    ACTIVITY NEEDED
+                    <code>{Math.max(0, backendCache.config.min_stalwart_activity_weeks - profile.active_weeks)} WEEKS</code>
+                </div>
+            </div>
+        </>}
         {!trusted(profile) && <>
             <hr />
             <h2>Bootcamp Progress</h2>
             <div className="two_column_grid">
                 <div className="db_cell monospace">
-                    KARMA LEFT
+                    KARMA NEEDED
                     <code>{Math.max(0, backendCache.config.trusted_user_min_karma - profile.karma)}</code>
                 </div>
                 <div className="db_cell monospace">
                     TIME LEFT
-                    <code>{Math.floor(Math.max(0, 
+                    <code>{Math.ceil(Math.max(0, 
                         (backendCache.config.trusted_user_min_age_weeks * 7 * day - 
                             (Number(new Date()) - parseInt(profile.timestamp) / 1000000)) / day
                     ))} DAYS</code>
@@ -78,11 +99,10 @@ export const Profile = ({handle}) => {
 };
 
 export const UserName = ({profile}) => {
-    const isBot = profile.controllers.find(p => p.length == 27);
     return <>
         {profile.name}
         {profile.stalwart && <sup className="small_text">⚔️</sup>}
-        {isBot && <sup className="small_text">🤖</sup>} 
+        {isBot(profile) && <sup className="small_text">🤖</sup>} 
         {!trusted(profile) && <sup className="small_text">*️⃣</sup>} 
     </>;
 }
@@ -177,10 +197,14 @@ export const UserInfo = ({profile}) => {
 
 const day = 24 * 3600 * 1000;
 
-const trusted = profile => profile.karma >= backendCache.config.trusted_user_min_karma 
-    && (Number(new Date()) - parseInt(profile.timestamp) / 1000000) >=
+const trusted = profile => profile.karma >= backendCache.config.trusted_user_min_karma &&
+    (Number(new Date()) - parseInt(profile.timestamp) / 1000000) >=
     backendCache.config.trusted_user_min_age_weeks * 7 * day;
 
-const stalwart = profile => profile.karma < backendCache.config.trusted_user_min_karma 
-    || (Number(new Date()) - parseInt(profile.timestamp) / 1000000) 
-    < backendCache.config.trusted_user_min_age_weeks * 7 * day;
+const isBot = profile => profile.controllers.find(p => p.length == 27);
+
+const stalwart = profile => !isBot(profile) && 
+    (Number(new Date()) - parseInt(profile.timestamp) / 1000000) >=
+    backendCache.config.min_stalwart_account_age_weeks * 7 * day && 
+    profile.active_weeks >= backendCache.config.min_stalwart_activity_weeks &&
+    profile.karma >= backendCache.karma[backendCache.stats.stalwarts[backendCache.stats.stalwarts.length-1]];
