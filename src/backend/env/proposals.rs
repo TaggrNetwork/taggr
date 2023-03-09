@@ -33,8 +33,6 @@ pub struct Proposal {
     pub description: String,
     pub status: Status,
     pub payload: Payload,
-    #[serde(skip)]
-    pub votes: Vec<(Principal, bool, Token)>,
     pub bulletins: Vec<(UserId, bool, Token)>,
     voting_power: Token,
 }
@@ -228,7 +226,6 @@ pub fn propose(
         status: Status::Open,
         payload,
         bulletins: Vec::default(),
-        votes: Default::default(),
         voting_power: 0,
         id,
     });

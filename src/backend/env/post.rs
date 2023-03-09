@@ -219,7 +219,7 @@ impl Post {
             .reactions
             .iter()
             .filter_map(|(id, _)| CONFIG.reactions.iter().find(|(rid, _)| id == rid))
-            .map(|(_, cost)| *cost as i64)
+            .map(|(_, cost)| *cost)
             .sum::<i64>()
             < 0
         {
@@ -323,6 +323,10 @@ pub async fn add(
             }
         }
     };
+
+    if user.is_bot() && parent.is_some() {
+        return Err("Bots can't create comments currently".into());
+    }
 
     let limit = if parent.is_none() {
         CONFIG.max_posts_per_hour

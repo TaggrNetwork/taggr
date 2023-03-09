@@ -286,6 +286,7 @@ article { overflow-wrap: anywhere; }
 .prime {
     line-height: 160%;
     margin-bottom: 2em;
+    margin-top: 1em;
 }
 
 th { background: $background_dark; }

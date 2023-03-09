@@ -1,59 +1,20 @@
 use crate::canisters::{install, CanisterInstallMode};
 use candid::Principal;
-use ic_cdk::api::{call::call_raw, stable::*};
+use ic_cdk::api::call::call_raw;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 use super::{config::CONFIG, Logger};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct Storage {
-    end: u64,
     pub buckets: BTreeMap<Principal, u64>,
 }
 
-const INITIAL_OFFSET: u64 = 16;
 const BUCKET_WASM_GZ: &[u8] =
     include_bytes!("../../../target/wasm32-unknown-unknown/release/bucket.wasm.gz");
 
-impl Default for Storage {
-    fn default() -> Self {
-        // The first 16 bytes are reserved for the heap address
-        Storage {
-            end: INITIAL_OFFSET,
-            buckets: Default::default(),
-        }
-    }
-}
-
 impl Storage {
-    pub fn init(&self) {
-        self.grow_to_fit(0);
-    }
-
-    pub fn temporal_write(&mut self, blob: &[u8]) -> (u64, usize) {
-        self.grow_to_fit(blob.len() as u64);
-        let offset = self.end;
-        stable64_write(offset, blob);
-        (offset, blob.len())
-    }
-
-    fn grow_to_fit(&self, len: u64) {
-        if self.end + len > (stable64_size() << 16) && stable64_grow((len >> 16) + 1).is_err() {
-            panic!("Couldn't grow memory");
-        }
-    }
-
-    pub fn read(&self, offset: u64, len: usize) -> Vec<u8> {
-        let mut buf = Vec::with_capacity(len);
-        buf.spare_capacity_mut();
-        unsafe {
-            buf.set_len(len);
-        }
-        stable64_read(offset, &mut buf);
-        buf
-    }
-
     async fn allocate_space(
         &mut self,
         max_bucket_size: u64,

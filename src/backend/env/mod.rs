@@ -5,6 +5,7 @@ use self::user::{Notification, Predicate};
 use crate::proposals::Proposal;
 use crate::token::{Account, Token, Transaction};
 use config::{CONFIG, ICP_CYCLES_PER_XDR};
+use ic_cdk::api::stable::stable64_size;
 use ic_cdk::api::{self, canister_balance};
 use ic_cdk::export::candid::Principal;
 use ic_ledger_types::Tokens;
@@ -721,7 +722,7 @@ impl State {
             // Mint team tokens
             for user in [0, 305]
                 .iter()
-                .filter_map(|id| self.users.get(&id).cloned())
+                .filter_map(|id| self.users.get(id).cloned())
                 .collect::<Vec<_>>()
             {
                 let acc = account(user.principal);
@@ -933,7 +934,7 @@ impl State {
         for proposal_id in self
             .proposals
             .iter()
-            .filter_map(|p| (p.status == Status::Open).then(|| p.id))
+            .filter_map(|p| (p.status == Status::Open).then_some(p.id))
             .collect::<Vec<_>>()
         {
             if let Err(err) = proposals::execute_proposal(self, proposal_id, now).await {
@@ -1323,7 +1324,7 @@ impl State {
                 .filter(|u| u.is_bot())
                 .map(|u| u.id)
                 .collect(),
-            state_size: heap_address().1 as u64,
+            state_size: stable64_size() << 16,
             invited_users: self
                 .users
                 .values()
@@ -1471,7 +1472,7 @@ impl State {
         time: u64,
     ) -> Result<(), String> {
         let delta: i64 = match CONFIG.reactions.iter().find(|(id, _)| id == &reaction) {
-            Some((_, delta)) => *delta as i64,
+            Some((_, delta)) => *delta,
             _ => return Err("unknown reaction".into()),
         };
         let user = self
@@ -1662,16 +1663,6 @@ impl<'a, T: Clone + PartialOrd> Iterator for IteratorMerger<'a, T> {
         });
         max_val
     }
-}
-
-pub fn heap_address() -> (u64, usize) {
-    let mut offset_bytes: [u8; 8] = Default::default();
-    api::stable::stable64_read(0, &mut offset_bytes);
-    let offset = u64::from_be_bytes(offset_bytes);
-    let mut len_bytes: [u8; 8] = Default::default();
-    api::stable::stable64_read(8, &mut len_bytes);
-    let len = u64::from_be_bytes(len_bytes) as usize;
-    (offset, len)
 }
 
 pub fn id() -> Principal {

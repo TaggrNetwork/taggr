@@ -39,8 +39,7 @@ export const Tokens = () => {
         <HeadBar title="Tokenomics" shareLink="tokenomics" />
         {balances.length == 0 && <Loading />}
         {balances.length > 0 && <div className="spaced">
-            <h1>Current state</h1>
-            <div className={`${bigScreen() ? "four_column_grid" : "two_column_grid"} monospace`}>
+            <div className={`${bigScreen() ? "four_column_grid" : "two_column_grid"} monospace vertically_spaced`}>
                 <div className="db_cell">
                     Minted<code>{token(mintedSupply)}</code>
                 </div>
@@ -64,6 +63,8 @@ export const Tokens = () => {
                 ></div>)}
             </div>
             Holder: {holder < 0 ? "none" : <UserLink id={holder} />}
+            <br />
+            <br />
             <h1>TOP 15 balances</h1>
             <table style={{width: "100%"}}>
                 <thead className={bigScreen() ? null : "small_text"}>
@@ -83,7 +84,6 @@ export const Tokens = () => {
                     </tr>)}
                 </tbody>
             </table>
-            <hr />
             <br />
             <h1>Latest transactions</h1>
             <div className="row_container">

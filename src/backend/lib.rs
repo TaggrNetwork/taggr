@@ -6,6 +6,7 @@ use ic_stable_structures::{
     DefaultMemoryImpl,
 };
 
+use env::State;
 use env::{
     canisters::upgrade_main_canister,
     config::CONFIG,
@@ -14,7 +15,6 @@ use env::{
     user::{User, UserId},
     *,
 };
-use env::{heap_address, State};
 use ic_cdk::{
     api::{
         self,
@@ -63,7 +63,6 @@ fn set_timer() {
 #[init]
 fn init() {
     let mut state: State = Default::default();
-    state.storage.init();
     state.load();
     unsafe {
         STATE = Some(state);
@@ -112,7 +111,7 @@ fn stable_mem_write(input: Vec<(u64, ByteBuf)>) {
             return;
         }
         let offset = page * BACKUP_PAGE_SIZE as u64;
-        let current_size = api::stable::stable64_size();
+        let current_size = ic_cdk::api::stable::stable64_size();
         let needed_size = ((offset + buffer.len() as u64) >> 16) + 1;
         let delta = needed_size.saturating_sub(current_size);
         if delta > 0 {
@@ -129,21 +128,18 @@ fn stable_to_heap() {
 }
 
 fn stable_to_heap_core() {
-    let (offset, len) = heap_address();
-    println!(
-        "Reading heap from coordinates: {:?}, stable memory size: {}",
-        (offset, len),
-        (api::stable::stable64_size() << 16)
-    );
+    use ic_stable_structures::Memory;
+    println!("Reading heap");
+    let memory = get_upgrades_memory();
 
-    let mut bytes = Vec::with_capacity(len);
-    bytes.spare_capacity_mut();
-    unsafe {
-        bytes.set_len(len);
-    }
+    // Read the length of the state bytes.
+    let mut state_len_bytes = [0; 4];
+    memory.read(0, &mut state_len_bytes);
+    let state_len = u32::from_le_bytes(state_len_bytes) as usize;
 
-    // Restore heap
-    api::stable::stable64_read(offset, &mut bytes);
+    // Read the bytes
+    let mut bytes = vec![0; state_len];
+    memory.read(4, &mut bytes);
     unsafe {
         STATE = Some(serde_cbor::from_slice(&bytes).expect("couldn't deserialize"));
     };
@@ -557,14 +553,15 @@ fn transactions() {
 
 #[export_name = "canister_query proposals"]
 fn proposals() {
+    let page_size = 10;
     let page: usize = parse(&arg_data_raw());
     reply(
         state()
             .proposals
             .iter()
             .rev()
-            .skip(page * CONFIG.feed_page_size)
-            .take(CONFIG.feed_page_size)
+            .skip(page * page_size)
+            .take(page_size)
             .collect::<Vec<_>>(),
     )
 }
@@ -593,14 +590,6 @@ fn realm_posts() {
 #[export_name = "canister_query realms"]
 fn realms() {
     reply(&state().realms);
-}
-
-#[export_name = "canister_query read"]
-fn read() {
-    let args = &arg_data_raw();
-    let offset = bytes_to_u64(args, 0);
-    let len = bytes_to_u64(args, 8);
-    reply_raw(&state().storage.read(offset, len as usize));
 }
 
 #[export_name = "canister_query tree"]
@@ -756,9 +745,9 @@ fn search() {
 
 #[query]
 fn stable_mem_read(page: u64) -> Vec<(u64, Blob)> {
+    use ic_stable_structures::Memory;
     let offset = page * BACKUP_PAGE_SIZE as u64;
-    let (heap_offset, len) = heap_address();
-    let memory_end = heap_offset + len as u64;
+    let memory_end = get_upgrades_memory().size() << 16;
     if offset > memory_end {
         return Default::default();
     }
@@ -785,10 +774,4 @@ fn resolve_handle(handle: Option<String>) -> Option<User> {
         Some(handle) => state().user(&handle).cloned(),
         None => Some(state().principal_to_user(caller())?.clone()),
     }
-}
-
-fn bytes_to_u64(bytes: &[u8], offset: usize) -> u64 {
-    let mut number_bytes: [u8; 8] = Default::default();
-    number_bytes.copy_from_slice(&bytes[offset..offset + 8]);
-    u64::from_be_bytes(number_bytes)
 }

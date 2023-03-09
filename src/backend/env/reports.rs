@@ -28,7 +28,6 @@ impl Report {
         let votes = self.confirmed_by.len().max(self.rejected_by.len()) as u16;
         if votes * 100 >= CONFIG.report_confirmation_percentage * stalwarts as u16 {
             self.closed = true;
-            return;
         }
     }
 }
