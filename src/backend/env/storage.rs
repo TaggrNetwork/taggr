@@ -38,12 +38,6 @@ impl Storage {
         (offset, blob.len())
     }
 
-    pub fn write(&mut self, blob: &[u8]) -> (u64, usize) {
-        let (offset, len) = self.temporal_write(blob);
-        self.end += len as u64;
-        (offset, len)
-    }
-
     fn grow_to_fit(&self, len: u64) {
         if self.end + len > (stable64_size() << 16) && stable64_grow((len >> 16) + 1).is_err() {
             panic!("Couldn't grow memory");

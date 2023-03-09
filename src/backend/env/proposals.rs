@@ -33,9 +33,8 @@ pub struct Proposal {
     pub description: String,
     pub status: Status,
     pub payload: Payload,
-    // TODO: remove
+    #[serde(skip)]
     pub votes: Vec<(Principal, bool, Token)>,
-    #[serde(default)]
     pub bulletins: Vec<(UserId, bool, Token)>,
     voting_power: Token,
 }

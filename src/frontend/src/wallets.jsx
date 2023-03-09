@@ -1,4 +1,4 @@
-import {CopyToClipboard, HeadBar, Loading, hex, ICPAccountBalance, tokenBalance, ButtonWithLoading} from "./common";
+import {CopyToClipboard, HeadBar, Loading, hex, ICPAccountBalance, tokenBalance, ButtonWithLoading, bigScreen} from "./common";
 import * as React from "react";
 
 const Welcome = () => {
@@ -56,7 +56,8 @@ const Welcome = () => {
 
 export const Wallets = () => {
     const [user, setUser] = React.useState(api._user);
-    const [status, setStatus] = React.useState(null);
+    const [mintStatus, setMintStatus] = React.useState(null);
+    const [transferStatus, setTransferStatus] = React.useState(null);
     const mintCycles = async kilo_cycles => await api.call("mint_cycles", kilo_cycles);
 
     if (!user) return <Welcome />;
@@ -66,31 +67,55 @@ export const Wallets = () => {
         <HeadBar title={"Wallets"} shareLink="wallets" />
         <div className="spaced vertically_spaced">
             <div className="stands_out">
-                <h1>ICP</h1>
-                <div className="row_container vcentered">
-                    <code className="max_width_col">{user.account}</code>
+                <div className="vcentered">
+                    <h1 className="max_width_col">ICP</h1>
+                    <ButtonWithLoading label="TRANSFER" onClick={async () => {
+                        const amount = prompt("Enter the amount (fee: 0.0001 ICP)");
+                        if (!amount) return;
+                        const recipient = prompt("Enter the recipient address");
+                        if (!recipient) return;
+                        if(!confirm(`You are transferring\n\n${amount} ICP\n\nto\n\n${recipient}`)) return;
+                        let result = await api.call("transfer", recipient, amount);
+                        if ("Err" in result) {
+                            alert(`Error: ${result.Err}`);
+                            return;
+                        }
+                        setTransferStatus("DONE!");
+                    }} />
+                </div>
+                <div className="vcentered">
+                    {!transferStatus && <code className="max_width_col">
+                        <CopyToClipboard value={user.account}
+                        displayMap={val => bigScreen() ? val : val.slice(0,8) } />
+                    </code>}
+                    {transferStatus && <code className="max_width_col">{transferStatus}</code>}
                     <code><ICPAccountBalance address={user.account} units={false} decimals={true} /></code>
                 </div>
             </div>
             <div className="stands_out">
-                <h1>{name} Cycles</h1>
+                <div className="vcentered">
+                    <h1 className="max_width_col">{name} Cycles</h1>
+                    <ButtonWithLoading onClick={async () => {
+                        const kilo_cycles = parseInt(prompt("Enter the number of 1000s of cycles to mint", 1));
+                        if (isNaN(kilo_cycles)) {
+                            return
+                        }
+                        const result = await mintCycles(Math.max(1, kilo_cycles));
+                        if ("Err" in result) {
+                            alert(`Error: ${result.Err}`);
+                            return;
+                        }
+                        const invoice = result.Ok;
+                        if (invoice.paid) {
+                            await api._reloadUser();
+                            setUser(api._user);
+                        }
+                        setMintStatus("SUCCESS!");
+                    }} label="MINT" />
+                </div>
                 <div className="row_container vcentered">
                     <div className="max_width_col">
-                        {status && <code>{status}</code>}
-                        {!status && <ButtonWithLoading classNameArg="active" onClick={async () => {
-                            const kilo_cycles = parseInt(prompt("Enter the number of 1000s of cycles to mint", 1));
-                            const result = await mintCycles(Math.max(1, kilo_cycles));
-                            if ("Err" in result) {
-                                alert(`Error: ${result.Err}`);
-                                return;
-                            }
-                            const invoice = result.Ok;
-                            if (invoice.paid) {
-                                await api._reloadUser();
-                                setUser(api._user);
-                            }
-                            setStatus("SUCCESS!");
-                        }} label="MINT FROM ICP" />}
+                        {mintStatus && <code>{mintStatus}</code>}
                     </div>
                     <code className="xx_large_text">{user.cycles.toLocaleString()}</code>
                 </div>

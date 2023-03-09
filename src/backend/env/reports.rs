@@ -67,7 +67,7 @@ pub fn vote_on_report(state: &mut State, principal: Principal, post_id: PostId, 
             .expect("no user found");
         reporter.notify_about_post(format!("The post reported by you was deleted by stalwarts. Thanks for keeping {} safe and clean!", CONFIG.name), post.id);
         state
-            .transfer(
+            .cycle_transfer(
                 post_author_id,
                 report.reporter,
                 unit,
@@ -102,7 +102,7 @@ pub fn vote_on_report(state: &mut State, principal: Principal, post_id: PostId, 
     for stalwart_id in stalwarts.iter() {
         let moderator = state.users.get(stalwart_id).expect("no user found").id;
         state
-            .transfer(
+            .cycle_transfer(
                 sponsor_id,
                 moderator,
                 stalwart_reward,

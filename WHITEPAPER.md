@@ -25,7 +25,7 @@ $name has a total supply of `$total_supply` tokens. Tokens can only be mined.
 Currently, all users who earn karma, automatically mine `$token_symbol` tokens.
 The token minting happens weekly by converting the earned karma to `$token_symbol` tokens at an exponentially declining ratio.
 The ratio starts with `1:1` for the first `10%` of supply, then drops to `2:1` for the next `10%`, then to `4:1` and so on.
-Hence the last `10%` of supply will be minted at the ratio `1024:1`.
+Hence the last `10%` of supply will be minted at the ratio `512:1`.
 
 The utility of tokens is governance and ownership of $name's revenue.
 

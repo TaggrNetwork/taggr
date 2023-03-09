@@ -7,6 +7,7 @@ use crate::token::{Account, Token, Transaction};
 use config::{CONFIG, ICP_CYCLES_PER_XDR};
 use ic_cdk::api::{self, canister_balance};
 use ic_cdk::export::candid::Principal;
+use ic_ledger_types::Tokens;
 use invoices::e8s_to_icp;
 use invoices::Invoices;
 use post::{Post, PostId};
@@ -194,7 +195,7 @@ impl State {
         Ok(())
     }
 
-    pub fn transfer<T: ToString>(
+    pub fn cycle_transfer<T: ToString>(
         &mut self,
         sender: UserId,
         receiver: UserId,
@@ -379,7 +380,7 @@ impl State {
         let tipper_id = tipper.id;
         let tipper_name = tipper.name.clone();
         let author_id = self.posts.get(&post_id).ok_or("post not found")?.user;
-        self.transfer(
+        self.cycle_transfer(
             tipper_id,
             author_id,
             tip,
@@ -786,7 +787,38 @@ impl State {
             .collect()
     }
 
-    async fn transfer_icp(
+    pub async fn icp_transfer(
+        &self,
+        principal: Principal,
+        recipient: String,
+        amount: String,
+    ) -> Result<(), String> {
+        fn parse(amount: &str) -> Result<Tokens, String> {
+            let parse = |s: &str| {
+                s.parse::<u64>()
+                    .map_err(|err| format!("Couldn't parse as u64: {:?}", err))
+            };
+            match &amount.split('.').collect::<Vec<_>>().as_slice() {
+                [icpts] => Ok(Tokens::from_e8s(parse(icpts)? * 10_u64.pow(8))),
+                [icpts, e8s] => {
+                    let mut e8s = e8s.to_string();
+                    while e8s.len() < 8 {
+                        e8s.push('0');
+                    }
+                    let e8s = &e8s[..8];
+                    Ok(Tokens::from_e8s(
+                        parse(icpts)? * 10_u64.pow(8) + parse(e8s)?,
+                    ))
+                }
+                _ => Err(format!("Can't parse amount {}", amount)),
+            }
+        }
+        invoices::user_transfer(&principal, &recipient, parse(&amount)?)
+            .await
+            .map(|_| ())
+    }
+
+    async fn distribute_icp(
         &mut self,
         rewards: HashMap<UserId, u64>,
         revenue: HashMap<UserId, u64>,
@@ -886,7 +918,7 @@ impl State {
                 Ok(e8s_for_1000_kps) => {
                     let rewards = self.distribute_rewards(e8s_for_1000_kps);
                     let revenues = self.distribute_revenue(e8s_for_1000_kps);
-                    self.transfer_icp(rewards, revenues).await
+                    self.distribute_icp(rewards, revenues).await
                 }
                 Err(err) => {
                     self.logger
@@ -896,19 +928,6 @@ impl State {
             };
 
             self.mint(user_ids);
-        }
-
-        self.move_blobs_to_buckets().await;
-
-        // After we moved all blobs, we quickly check if we succeeded, because only then we're
-        // allowed to reset the local storage. So we check that all file ids are in some bucket.
-        if self
-            .posts
-            .values()
-            .flat_map(|post| post.files.keys())
-            .all(|id| id.contains('@'))
-        {
-            self.logger.info("No blobs on heap left.");
         }
 
         for proposal_id in self
@@ -1029,42 +1048,6 @@ impl State {
             },
             stalwart_seats
         ));
-    }
-
-    async fn move_blobs_to_buckets(&mut self) -> usize {
-        let mut moved_blobs = 0;
-        for (_, post) in self.posts.iter_mut() {
-            let local_blobs = post
-                .files
-                .clone()
-                .into_iter()
-                .filter(|(id, _)| !id.contains('@'))
-                .collect::<Vec<_>>();
-            for (id, (offset, len)) in local_blobs {
-                let blob = self.storage.read(offset, len);
-                match self
-                    .storage
-                    .write_to_bucket(&mut self.logger, blob.as_slice())
-                    .await
-                    .clone()
-                {
-                    Ok((bucket_id, offset)) => {
-                        post.files.remove(&id);
-                        post.files
-                            .insert(format!("{}@{}", id, bucket_id), (offset, len));
-                        moved_blobs += 1;
-                    }
-                    Err(err) => self
-                        .logger
-                        .error(format!("Couldn't write a blob to bucket: {:?}", err)),
-                };
-            }
-        }
-        self.logger.info(format!(
-            "Moved `{}` blobs to a storage bucket.",
-            moved_blobs
-        ));
-        moved_blobs
     }
 
     pub async fn mint_cycles(
@@ -1456,7 +1439,7 @@ impl State {
         // refund rewards
         for (users, amount) in reaction_costs {
             for user_id in users {
-                self.transfer(
+                self.cycle_transfer(
                     post.user,
                     *user_id,
                     amount,
@@ -1531,7 +1514,7 @@ impl State {
             )
             .expect("couldn't charge user");
         } else {
-            self.transfer(
+            self.cycle_transfer(
                 user.id,
                 post.user,
                 delta,
@@ -2257,7 +2240,7 @@ pub(crate) mod tests {
         let u1 = create_user_with_params(&mut state, p, "user1", true);
         let u2 = create_user_with_params(&mut state, pr(1), "user2", true);
         state
-            .transfer(u1, u2, -1, 0, Destination::Cycles, "")
+            .cycle_transfer(u1, u2, -1, 0, Destination::Cycles, "")
             .unwrap();
     }
 

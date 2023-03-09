@@ -1,6 +1,11 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap};
 
-use candid::Principal;
+use ic_stable_structures::{
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
+    writer::Writer,
+    DefaultMemoryImpl,
+};
+
 use env::{
     canisters::upgrade_main_canister,
     config::CONFIG,
@@ -18,16 +23,27 @@ use ic_cdk::{
     caller, id, println, spawn, timer,
 };
 use ic_cdk_macros::*;
-use ic_ledger_types::AccountIdentifier;
 use serde_bytes::ByteBuf;
 
 mod assets;
 mod env;
 mod http;
 
+const UPGRADES: MemoryId = MemoryId::new(0);
 const BACKUP_PAGE_SIZE: u32 = 1024 * 1024;
 
+thread_local! {
+    static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
+        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+}
+
+pub fn get_upgrades_memory() -> Memory {
+    MEMORY_MANAGER.with(|m| m.borrow().get(UPGRADES))
+}
+
 static mut STATE: Option<State> = None;
+
+pub type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 pub fn state<'a>() -> &'a State {
     unsafe { STATE.as_ref().expect("read access failed: no state") }
@@ -57,7 +73,7 @@ fn init() {
 
 #[pre_upgrade]
 fn pre_upgrade() {
-    heap_to_stable_core(state_mut());
+    heap_to_stable_core(state());
 }
 
 #[post_upgrade]
@@ -78,36 +94,6 @@ fn post_upgrade() {
     state_mut().storage.buckets.clear();
 
     // temporary post upgrade logic goes here
-    for p in state_mut().proposals.iter_mut() {
-        p.bulletins = p
-            .votes
-            .clone()
-            .into_iter()
-            .map(|(p, v, t)| {
-                (
-                    // Only yungsucc changed the principal, so no other failures are expected
-                    state().principal_to_user(p).map(|u| u.id).unwrap_or(660),
-                    v,
-                    t,
-                )
-            })
-            .collect();
-    }
-
-    let s = state_mut();
-    s.accounting.invoices.clear();
-    let principals = s.principals.clone();
-    for u in s.users.values_mut() {
-        u.principal = principals
-            .iter()
-            .find_map(|(p, id)| (id == &u.id).then(|| *p))
-            .unwrap_or(Principal::anonymous());
-        let subacc = invoices::principal_to_subaccount(&u.principal);
-        u.account = AccountIdentifier::new(&id(), &subacc).to_string();
-    }
-
-    //  clean up garbage feeds in https://taggr.link/#/thread/18267
-    s.users.get_mut(&83).unwrap().feeds.clear();
 }
 
 /*
@@ -163,12 +149,14 @@ fn stable_to_heap_core() {
     };
 }
 
-fn heap_to_stable_core(state: &mut State) {
+fn heap_to_stable_core(state: &State) {
     let buffer: Vec<u8> = serde_cbor::to_vec(state).expect("couldn't serialize the state");
-    let (offset, len) = state.storage.temporal_write(&buffer);
-    // Save the heap address on stable memory
-    api::stable::stable64_write(0, &offset.to_be_bytes());
-    api::stable::stable64_write(8, &(len as u64).to_be_bytes());
+    let mut memory = get_upgrades_memory();
+    let mut writer = Writer::new(&mut memory, 0);
+    writer
+        .write(&buffer.len().to_le_bytes())
+        .expect("couldn't serialize heap length");
+    writer.write(&buffer).expect("couldn't serialize the heap");
 }
 
 #[export_name = "canister_update heap_to_stable"]
@@ -325,6 +313,14 @@ fn create_user() {
     let (name, invite): (String, Option<String>) = parse(&arg_data_raw());
     spawn(async {
         reply(state_mut().create_user(caller(), name, invite).await);
+    });
+}
+
+#[export_name = "canister_update transfer"]
+fn transfer() {
+    spawn(async {
+        let (recipient, amount): (String, String) = parse(&arg_data_raw());
+        reply(state().icp_transfer(caller(), recipient, amount).await)
     });
 }
 

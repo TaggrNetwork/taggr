@@ -45,13 +45,7 @@ pub struct User {
     pub current_realm: Option<String>,
     pub balance: Token,
     pub active_weeks: u32,
-    #[serde(default = "set_principal")]
     pub principal: Principal,
-}
-
-// TODO: remove
-fn set_principal() -> Principal {
-    Principal::anonymous()
 }
 
 impl User {

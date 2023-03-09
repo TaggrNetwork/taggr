@@ -33,7 +33,7 @@ pub struct Invoice {
 
 #[derive(Deserialize, Default, Serialize)]
 pub struct Invoices {
-    pub invoices: HashMap<Principal, Invoice>,
+    invoices: HashMap<Principal, Invoice>,
 }
 
 impl Invoices {
@@ -106,14 +106,28 @@ impl Invoices {
     }
 }
 
-/// Transfer e8s from Treasury to `acc`.
-pub async fn transfer(acc: &str, e8s: u64) -> Result<BlockIndex, String> {
+pub async fn transfer(to: &str, e8s: u64) -> Result<BlockIndex, String> {
     transfer_raw(
         MAINNET_LEDGER_CANISTER_ID,
         Tokens::from_e8s(e8s),
-        parse_account(acc)?,
+        parse_account(to)?,
         Memo(0),
         None,
+    )
+    .await
+}
+
+pub async fn user_transfer(
+    principal: &Principal,
+    to: &str,
+    amount: Tokens,
+) -> Result<BlockIndex, String> {
+    transfer_raw(
+        MAINNET_LEDGER_CANISTER_ID,
+        amount,
+        parse_account(to)?,
+        Memo(0),
+        Some(principal_to_subaccount(principal)),
     )
     .await
 }
