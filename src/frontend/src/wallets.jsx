@@ -1,4 +1,4 @@
-import {CopyToClipboard, HeadBar, Loading, hex, ICPAccountBalance, tokenBalance, ButtonWithLoading, bigScreen} from "./common";
+import {CopyToClipboard, HeadBar, Loading, hex, ICPAccountBalance, tokenBalance, ButtonWithLoading, bigScreen, IcpAccountLink} from "./common";
 import * as React from "react";
 
 const Welcome = () => {
@@ -86,7 +86,8 @@ export const Wallets = () => {
                 <div className="vcentered">
                     {!transferStatus && <code className="max_width_col">
                         <CopyToClipboard value={user.account}
-                        displayMap={val => bigScreen() ? val : val.slice(0,8) } />
+                            displayMap={val => <IcpAccountLink label={bigScreen() ? val : val.slice(0,8)} address={user.account} /> } 
+                        />
                     </code>}
                     {transferStatus && <code className="max_width_col">{transferStatus}</code>}
                     <code><ICPAccountBalance address={user.account} units={false} decimals={true} /></code>

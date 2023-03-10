@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ICPAccountBalance, intFromBEBytes, timeAgo, hoursTillNext, bigScreen, HeadBar, userList, token, UserLink, icpCode } from "./common";
+import { ICPAccountBalance, intFromBEBytes, timeAgo, hoursTillNext, bigScreen, HeadBar, userList, token, UserLink, icpCode, IcpAccountLink } from "./common";
 import {Content} from "./content";
 
 const show = (number, unit = null) => <code>{number.toLocaleString()}{unit}</code>;
@@ -34,7 +34,7 @@ export const Dashboard = ({fullMode}) => {
                     <div className="db_cell"><label>💬 COMMENTS</label>{show(stats.comments)}</div>
                     <div className="db_cell"><label>🌱 BOOTCAMPERS</label>{show(stats.bootcamp_users)}</div>
                     <div className="db_cell"><label>💾 APP STATE</label>{sizeMb(stats.state_size + stats.buckets.reduce((acc, [, e]) => acc + e, 0), "xx_large_text")}</div>
-                    <div className="db_cell"><label>🏦 <a href={`https://dashboard.internetcomputer.org/account/${stats.account}`}>TREASURY</a></label><ICPAccountBalance address={stats.account} /></div>
+                    <div className="db_cell"><label>🏦 <IcpAccountLink address={stats.account} label={"TREASURY"}/></label><ICPAccountBalance address={stats.account} /></div>
                     <div className="db_cell"><label>⌛️ DISTRIBUTION</label><code className="xx_large_text">{`${hoursTillNext(distribution_interval_hours, last_distribution)}h`}</code></div>
                     <div className="db_cell"><label>⚡️ CYCLES SUPPLY</label>{show(stats.cycles)}</div>
                     <div className="db_cell"><label>🔥 CYCLES BURNED</label>{show(stats.burned_cycles_total)}</div>

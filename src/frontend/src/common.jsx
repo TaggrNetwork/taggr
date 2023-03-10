@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Content } from './content';
 import DiffMatchPatch from 'diff-match-patch';
-import {Checkmark, Menu, Share} from "./icons";
+import { Clipboard, ClipboardCheck, Menu, Share} from "./icons";
 
 export const percentage = (n, supply) => {
     let p = Math.ceil(parseInt(n) / (supply || 1) * 10000) / 100;
@@ -161,6 +161,9 @@ export const ICPAccountBalance = ({address, decimals, units}) => {
     return icpCode(e8s, decimals, units);
 }
 
+export const IcpAccountLink = ({address, label}) => 
+    <a target="_blank" href={`https://dashboard.internetcomputer.org/account/${address}`}>{label}</a>;
+
 export const Loading = ({classNameArg, spaced = true}) => {
     const [dot, setDot] = React.useState(0);
     const md = <span> ■ </span>;
@@ -229,8 +232,8 @@ export const reactions = () => backendCache.config.reactions;
 export const reactionCosts = () => backendCache.config.reactions.reduce((acc, [id, cost, _]) => { acc[id] = cost; return acc }, {});
 
 export const CopyToClipboard = ({value, 
-    pre = value => <span><code>{value}</code> 📋</span>, 
-    post = value => <span><code>{value}</code> <Checkmark /></span>,
+    pre = value => <span><code>{value}</code> <Clipboard /></span>, 
+    post = value => <span><code>{value}</code> <ClipboardCheck /></span>,
     displayMap = e => e,
     map = e => e,
 }) => {
