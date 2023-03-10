@@ -2,6 +2,7 @@ use self::invoices::Invoice;
 use self::proposals::Status;
 use self::token::account;
 use self::user::{Notification, Predicate};
+use crate::env::invoices::principal_to_subaccount;
 use crate::proposals::Proposal;
 use crate::token::{Account, Token, Transaction};
 use config::{CONFIG, ICP_CYCLES_PER_XDR};
@@ -814,9 +815,13 @@ impl State {
                 _ => Err(format!("Can't parse amount {}", amount)),
             }
         }
-        invoices::user_transfer(&principal, &recipient, parse(&amount)?)
-            .await
-            .map(|_| ())
+        invoices::transfer(
+            &recipient,
+            parse(&amount)?,
+            Some(principal_to_subaccount(&principal)),
+        )
+        .await
+        .map(|_| ())
     }
 
     async fn distribute_icp(
@@ -848,7 +853,7 @@ impl State {
             if e8s < invoices::fee() * 100 {
                 continue;
             }
-            match invoices::transfer(&user.account, e8s).await {
+            match invoices::transfer(&user.account, Tokens::from_e8s(e8s), None).await {
                 Ok(_) => {
                     user_rewards += user_reward;
                     user_revenues += user_revenue;
