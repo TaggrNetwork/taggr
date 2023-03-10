@@ -1,4 +1,4 @@
-import {HeadBar, Loading, ButtonWithLoading, bigScreen, timeAgo, token, userList, percentage} from "./common";
+import {HeadBar, Loading, ButtonWithLoading, timeAgo, token, userList, percentage} from "./common";
 import * as React from "react";
 import {Content} from "./content";
 import {loadFile, MAX_POST_SIZE_BYTES} from "./form";

@@ -51,7 +51,7 @@ export const realmColors = (name, col) => {
         const brightness = ((c_r * 299) + (c_g * 587) + (c_b * 114)) / 1000;
         return brightness > 155;
     };
-    const effCol = col || backendCache.realms[name]?.label_color || "#ffffff";
+    const effCol = col || (backendCache.realms.find(([n]) => n == name) || [])[1] || "#ffffff";
     return [effCol, light(effCol) ? "black" : "white"];
 };
 

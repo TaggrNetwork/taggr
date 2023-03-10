@@ -10,7 +10,7 @@ import { Thread } from "./thread";
 import { Invites } from "./invites";
 import { Inbox } from "./inbox";
 import { Journal } from "./journal";
-import { RealmForm, Realms, RealmPage, realmSorter } from "./realms";
+import { RealmForm, Realms, RealmPage } from "./realms";
 import { Dashboard } from "./dashboard";
 import { PostSubmissionForm } from "./new";
 import { Profile } from './profile';
@@ -154,7 +154,7 @@ const reloadCache = async () => {
         window.api.query("recent_tags", 500), 
         window.api.query("stats"),
         window.api.query("config"),
-        window.api.query("realms"),
+        window.api.query("realms_data"),
     ]);
     console.log( "users", JSON.stringify(users).length / 1024 );
     console.log( "recent_tags", JSON.stringify(recent_tags).length / 1024 );
@@ -210,8 +210,9 @@ AuthClient.create({ idleOptions: { disableIdle: true } }).then(async (authClient
             let data  = await api.query("user", []);
             if (data) {
                 api._user = data;
+                let realmNames = backendCache.realms.map(([name]) => name);
+                api._user.realms.sort((a, b) => realmNames.indexOf(a) - realmNames.indexOf(b));
                 api._user.settings = JSON.parse(api._user.settings || "{}");
-                api._user.realms.sort(realmSorter);
                 if (600000 < microSecsSince(api._user.last_activity)) {
                     api._last_visit = api._user.last_activity;
                     api.call("update_last_activity");

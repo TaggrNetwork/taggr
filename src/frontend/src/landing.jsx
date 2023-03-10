@@ -5,7 +5,6 @@ import { Dashboard } from './dashboard';
 import {Search} from './search';
 import {bigScreen, Loading, RealmSpan, setTitle} from './common';
 import {New, User, Fire } from './icons';
-import {realmSorter} from "./realms";
 
 const FEED_KEY = "_feed";
 
@@ -40,12 +39,11 @@ export const Landing = ({heartbeat}) => {
 }; 
 
 const RealmsDashboard = () => {
-    const realm_names = Object.keys(backendCache.realms);
-    realm_names.sort(realmSorter);
+    const realmNames = backendCache.realms;
     return <div className="vertically_spaced text_centered">
         <div className="row_container" style={{opacity: 0.8, margin: "0.5em", marginBottom: "1em"}}>
-            {realm_names.slice(0, 10).map(name => 
-            <RealmSpan key={name} name={name} onClick={() => location.href = `/#/realm/${name}`}
+            {realmNames.slice(0, 10).map(([name, col]) => 
+            <RealmSpan key={name} col={col} name={name} onClick={() => location.href = `/#/realm/${name}`}
                 classNameArg="clickable max_width_col medium_text monospace padded_rounded marginized" />)}
         </div>
         <a href="#/realms">ALL REALMS &#x279C;</a>

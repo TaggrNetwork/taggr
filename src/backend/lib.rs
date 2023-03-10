@@ -588,9 +588,41 @@ fn realm_posts() {
     }
 }
 
+fn sorted_realms<'a>() -> Vec<(&'a String, &'a Realm)> {
+    let mut realms = state().realms.iter().collect::<Vec<_>>();
+    realms.sort_unstable_by(|(_, b), (_, a)| {
+        (a.posts.len() * a.members.len()).cmp(&(b.posts.len() * b.members.len()))
+    });
+    realms
+}
+
+#[export_name = "canister_query realms_data"]
+fn realms_data() {
+    reply(
+        sorted_realms()
+            .iter()
+            .map(|(name, realm)| (name, &realm.label_color))
+            .collect::<Vec<_>>(),
+    );
+}
+
+#[export_name = "canister_query realm"]
+fn realm() {
+    let name: String = parse(&arg_data_raw());
+    reply(state().realms.get(&name).ok_or("no realm found"));
+}
+
 #[export_name = "canister_query realms"]
 fn realms() {
-    reply(&state().realms);
+    let page_size = 8;
+    let page: usize = parse(&arg_data_raw());
+    reply(
+        sorted_realms()
+            .iter()
+            .skip(page * page_size)
+            .take(page_size)
+            .collect::<Vec<_>>(),
+    );
 }
 
 #[export_name = "canister_query tree"]

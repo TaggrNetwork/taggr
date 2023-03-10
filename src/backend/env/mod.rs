@@ -87,8 +87,8 @@ pub struct Realm {
     pub description: String,
     pub posts: Vec<PostId>,
     controllers: Vec<UserId>,
-    members: BTreeSet<UserId>,
-    label_color: String,
+    pub members: BTreeSet<UserId>,
+    pub label_color: String,
 }
 
 #[derive(Default, Serialize, Deserialize)]
