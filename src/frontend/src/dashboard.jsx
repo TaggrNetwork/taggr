@@ -6,6 +6,10 @@ const show = (number, unit = null) => <code>{number.toLocaleString()}{unit}</cod
 
 export const Dashboard = ({fullMode}) => {
     const stats = window.backendCache.stats;
+    const [logs, setLogs] = React.useState([]);
+
+    React.useEffect(() => { api.query("logs").then(setLogs); }, []);
+
     const { config: {distribution_interval_hours}, stats: {last_distribution}} = backendCache;
     return <>
         {fullMode && <HeadBar title="Dashboard" shareLink="dashboard" />}
@@ -91,7 +95,7 @@ export const Dashboard = ({fullMode}) => {
                 <hr />
                 <h2>📃 App events</h2>
                 <hr />
-                <Content value={stats.events.map(({timestamp, level, message}) => 
+                <Content value={logs.map(({timestamp, level, message}) => 
                     `${level2icon(level)} ` +
                     `\`${shortDate(new Date(parseInt(timestamp) / 1000000))}\`: ` + 
                     `${message}`).join("\n- - -\n")} classNameArg="monospace" />

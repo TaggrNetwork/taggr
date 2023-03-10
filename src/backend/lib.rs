@@ -733,6 +733,11 @@ fn config() {
     reply(CONFIG);
 }
 
+#[export_name = "canister_query logs"]
+fn logs() {
+    reply(state().logs());
+}
+
 #[export_name = "canister_query stats"]
 fn stats() {
     reply(state().stats(api::time()));

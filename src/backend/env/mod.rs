@@ -73,7 +73,6 @@ pub struct Stats {
     active_users: usize,
     invited_users: usize,
     buckets: Vec<(String, u64)>,
-    events: Vec<Event>,
     users_online: usize,
     last_upgrade: u64,
     module_hash: String,
@@ -1282,6 +1281,10 @@ impl State {
         id
     }
 
+    pub fn logs(&self) -> &Vec<Event> {
+        &self.logger.events
+    }
+
     pub fn stats(&self, now: u64) -> Stats {
         let cycles: Cycles = self.users.values().map(|u| u.cycles()).sum();
         let posts = self.posts.values().filter(|p| p.parent.is_none()).count();
@@ -1346,7 +1349,6 @@ impl State {
                 .iter()
                 .map(|(id, size)| (id.to_string(), *size))
                 .collect(),
-            events: self.logger.events.iter().rev().cloned().collect(),
             circulating_supply: self.balances.values().sum(),
         }
     }
