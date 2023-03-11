@@ -2,7 +2,6 @@ use std::{cell::RefCell, collections::HashMap};
 
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
-    writer::Writer,
     DefaultMemoryImpl,
 };
 
@@ -19,7 +18,6 @@ use ic_cdk::{
     api::{
         self,
         call::{arg_data_raw, reply_raw},
-        stable::stable64_size,
     },
     caller, id, println, spawn, timer,
 };
@@ -147,13 +145,15 @@ fn stable_to_heap_core() {
 }
 
 fn heap_to_stable_core(state: &State) {
+    use api::stable::{stable64_grow, stable64_size, stable64_write};
     let buffer: Vec<u8> = serde_cbor::to_vec(state).expect("couldn't serialize the state");
-    let mut memory = get_upgrades_memory();
-    let mut writer = Writer::new(&mut memory, 0);
-    writer
-        .write(&buffer.len().to_le_bytes())
-        .expect("couldn't serialize heap length");
-    writer.write(&buffer).expect("couldn't serialize the heap");
+    let len = buffer.len() as u64;
+    if len > (stable64_size() << 16) && stable64_grow((len >> 16) + 1).is_err() {
+        panic!("Couldn't grow memory");
+    }
+    stable64_write(16, &buffer);
+    api::stable::stable64_write(0, &16_u64.to_be_bytes());
+    api::stable::stable64_write(8, &len.to_be_bytes());
 }
 
 #[export_name = "canister_update heap_to_stable"]
@@ -784,7 +784,7 @@ fn search() {
 #[query]
 fn stable_mem_read(page: u64) -> Vec<(u64, Blob)> {
     let offset = page * BACKUP_PAGE_SIZE as u64;
-    let memory_end = stable64_size() << 16;
+    let memory_end = ic_cdk::api::stable::stable64_size() << 16;
     if offset > memory_end {
         return Default::default();
     }
