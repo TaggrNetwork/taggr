@@ -328,7 +328,9 @@ pub async fn add(
         return Err("Bots can't create comments currently".into());
     }
 
-    let limit = if parent.is_none() {
+    let limit = if user.is_bot() {
+        1
+    } else if parent.is_none() {
         CONFIG.max_posts_per_hour
     } else {
         CONFIG.max_comments_per_hour
@@ -343,7 +345,7 @@ pub async fn add(
                 && post.timestamp > timestamp.saturating_sub(HOUR)
         })
         .count()
-        > limit
+        >= limit
     {
         return Err(format!(
             "not more than {} {} per hour are allowed",
