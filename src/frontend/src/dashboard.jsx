@@ -8,7 +8,10 @@ export const Dashboard = ({fullMode}) => {
     const stats = window.backendCache.stats;
     const [logs, setLogs] = React.useState([]);
 
-    React.useEffect(() => { api.query("logs").then(setLogs); }, []);
+    React.useEffect(() => { api.query("logs").then(logs => {
+        logs.reverse();
+        setLogs(logs);
+    });}, []);
 
     const { config: {distribution_interval_hours}, stats: {last_distribution}} = backendCache;
     return <>
