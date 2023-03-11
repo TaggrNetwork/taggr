@@ -102,3 +102,177 @@ pub fn stable_to_heap() -> super::State {
     stable64_read(offset, &mut bytes);
     serde_cbor::from_slice(&bytes).expect("couldn't deserialize")
 }
+
+struct Allocator {
+    segments: BTreeMap<u64, u64>,
+    mem_grow: Box<dyn FnMut(u64)>,
+    mem_size: Box<dyn Fn() -> u64>,
+}
+
+impl Allocator {
+    fn init(&mut self, offset: u64) {}
+
+    fn alloc(&mut self, n: u64) -> u64 {
+        0
+    }
+
+    fn free(&mut self, offset: u64) {}
+
+    fn segs(&self) -> usize {
+        self.segments.len()
+    }
+
+    fn seg(&self, start: u64) -> u64 {
+        self.segments.get(&start).copied().expect("no segment")
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+
+    #[test]
+    fn test_allocator() {
+        static mut MEM_END: u64 = 0;
+        let mem_grow = |n| unsafe {
+            MEM_END += n;
+        };
+        fn mem_end() -> u64 {
+            unsafe { MEM_END }
+        }
+        let mut a = Allocator {
+            segments: Default::default(),
+            mem_grow: Box::new(mem_grow),
+            mem_size: Box::new(mem_end),
+        };
+
+        assert_eq!(mem_end(), 0);
+
+        a.init(16);
+        // |oooooooooooooooo|...
+        assert_eq!(mem_end(), 16);
+        assert_eq!(a.segs(), 1);
+        assert_eq!(a.seg(16), 16);
+
+        assert_eq!(a.alloc(8), 16);
+        // |oooooooooooooooo|xxxxxxxx|...
+        assert_eq!(mem_end(), 16 + 8);
+
+        assert_eq!(a.alloc(4), 16 + 8);
+        // |oooooooooooooooo|xxxxxxxx|xxxx|...
+        assert_eq!(mem_end(), 16 + 8 + 4);
+
+        assert_eq!(a.alloc(4), 16 + 8 + 4);
+        // |oooooooooooooooo|xxxxxxxx|xxxx|xxxx|...
+        assert_eq!(mem_end(), 16 + 8 + 4 + 4);
+        assert_eq!(a.segs(), 1);
+        assert_eq!(a.seg(32), 32);
+
+        a.free(16 + 8);
+        // |oooooooooooooooo|xxxxxxxx|....|xxxx|...
+        assert_eq!(a.segs(), 2);
+        assert_eq!(a.seg(16 + 8), 16 + 8 + 4);
+        assert_eq!(a.seg(32), 32);
+
+        assert_eq!(a.alloc(4), 16 + 8);
+        // |oooooooooooooooo|xxxxxxxx|xxxx|xxxx|...
+        assert_eq!(a.segs(), 1);
+        assert_eq!(a.seg(32), 32);
+
+        a.free(16);
+        // |oooooooooooooooo|........|xxxx|xxxx|...
+        assert_eq!(a.segs(), 2);
+        assert_eq!(a.seg(16), 16 + 8);
+        a.free(16 + 8);
+        // |oooooooooooooooo|............|xxxx|...
+        assert_eq!(a.segs(), 2);
+        assert_eq!(a.seg(16), 16 + 8 + 4);
+        assert_eq!(a.seg(32), 32);
+
+        assert_eq!(a.alloc(10), 16);
+        // |oooooooooooooooo|xxxxxxxxxx|..|xxxx|...
+        assert_eq!(a.segs(), 2);
+        assert_eq!(a.seg(16 + 10), 16 + 10 + 2);
+        assert_eq!(a.seg(32), 32);
+
+        assert_eq!(a.alloc(32), 32);
+        // |oooooooooooooooo|xxxxxxxxxx|..|xxxx|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx|
+        assert_eq!(a.segs(), 1);
+        assert_eq!(a.seg(16 + 10), 16 + 10 + 2);
+
+        a.free(32);
+        // |oooooooooooooooo|xxxxxxxxxx|..|xxxx|...
+        assert_eq!(a.segs(), 2);
+        assert_eq!(a.seg(16 + 10), 16 + 10 + 2);
+        assert_eq!(a.seg(32), 32);
+
+        assert_eq!(a.alloc(16), 32);
+        // |oooooooooooooooo|xxxxxxxxxx|..|xxxx|xxxxxxxxxxxxxxxx|...
+        assert_eq!(a.segs(), 2);
+        assert_eq!(a.seg(16 + 10), 16 + 10 + 2);
+        assert_eq!(a.seg(32 + 16), 64);
+
+        a.free(16 + 10 + 2);
+        // |oooooooooooooooo|xxxxxxxxxx|......|xxxxxxxxxxxxxxxx|...
+        assert_eq!(a.segs(), 2);
+        assert_eq!(a.seg(16 + 10), 16 + 10 + 2 + 4);
+        assert_eq!(a.seg(32 + 16), 64);
+
+        a.free(16);
+        // |oooooooooooooooo|................|xxxxxxxxxxxxxxxx|...
+        assert_eq!(a.segs(), 2);
+        assert_eq!(a.seg(16), 32);
+        assert_eq!(a.seg(32 + 16), 64);
+
+        a.free(32);
+        // |oooooooooooooooo|...
+        assert_eq!(a.segs(), 1);
+        assert_eq!(a.seg(16), 64);
+
+        assert_eq!(a.alloc(8), 16);
+        // |oooooooooooooooo|xxxxxxxx|...
+
+        assert_eq!(a.alloc(4), 16 + 8);
+        // |oooooooooooooooo|xxxxxxxx|xxxx|...
+
+        assert_eq!(a.alloc(4), 16 + 8 + 4);
+        // |oooooooooooooooo|xxxxxxxx|xxxx|xxxx|...
+        assert_eq!(a.segs(), 1);
+        assert_eq!(a.seg(32), 64);
+
+        assert_eq!(a.alloc(4), 16 + 8 + 4 + 4);
+        assert_eq!(a.alloc(4), 16 + 8 + 4 + 4 + 4);
+        // |oooooooooooooooo|xxxxxxxx|xxxx|xxxx|xxxx|xxxx|...
+        assert_eq!(a.segs(), 1);
+        assert_eq!(a.seg(40), 64);
+        assert_eq!(mem_end(), 64);
+
+        a.free(16);
+        // |oooooooooooooooo|........|xxxx|xxxx|xxxx|xxxx|...
+        a.free(16 + 8 + 4);
+        // |oooooooooooooooo|........|xxxx|....|xxxx|xxxx|...
+        assert_eq!(a.segs(), 3);
+        assert_eq!(a.seg(16), 16 + 8);
+        assert_eq!(a.seg(16 + 8 + 4), 16 + 8 + 4 + 4);
+        assert_eq!(a.seg(40), 64);
+
+        assert_eq!(a.alloc(4), 32);
+        // |oooooooooooooooo|........|xxxx|xxxx|xxxx|xxxx|...
+        assert_eq!(a.segs(), 2);
+        assert_eq!(a.seg(16), 16 + 8);
+        assert_eq!(a.seg(40), 64);
+
+        assert_eq!(a.alloc(20), 40);
+        // |oooooooooooooooo|........|xxxx|xxxx|xxxx|xxxx|xxxxxxxxxxxxxxxxxxxx|...
+        assert_eq!(a.segs(), 2);
+        assert_eq!(a.seg(16), 16 + 8);
+        assert_eq!(a.seg(60), 64);
+
+        assert_eq!(a.alloc(4), 60);
+        assert_eq!(a.alloc(4), 16);
+        // |oooooooooooooooo|xxxx|....|xxxx|xxxx|xxxx|xxxx|xxxxxxxxxxxxxxxxxxxx|xxxx|
+        assert_eq!(a.segs(), 2);
+        assert_eq!(a.seg(20), 24);
+        assert_eq!(a.seg(64), 64);
+    }
+}
