@@ -18,7 +18,6 @@ use ic_cdk::{
     api::{
         self,
         call::{arg_data_raw, reply_raw},
-        stable::stable64_size,
     },
     caller, id, println, spawn, timer,
 };
@@ -785,7 +784,7 @@ fn search() {
 #[query]
 fn stable_mem_read(page: u64) -> Vec<(u64, Blob)> {
     let offset = page * BACKUP_PAGE_SIZE as u64;
-    let memory_end = stable64_size() << 16;
+    let memory_end = ic_cdk::api::stable::stable64_size() << 16;
     if offset > memory_end {
         return Default::default();
     }
