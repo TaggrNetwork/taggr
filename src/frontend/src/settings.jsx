@@ -97,7 +97,7 @@ export const Settings = ({invite = null}) => {
                     return;
                 }
                 localStorage.clear();
-                location.reload();
+                location.href = "/";
             }} label="CHANGE PRINCIPAL" />}</>}
         </div>
     </>;
