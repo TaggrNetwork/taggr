@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use env::storage::heap_address;
 use env::State;
 use env::{
     canisters::upgrade_main_canister,
@@ -743,7 +744,7 @@ fn search() {
 #[query]
 fn stable_mem_read(page: u64) -> Vec<(u64, Blob)> {
     let offset = page * BACKUP_PAGE_SIZE as u64;
-    let memory_end = ic_cdk::api::stable::stable64_size() << 16;
+    let memory_end = heap_address().1;
     if offset > memory_end {
         return Default::default();
     }

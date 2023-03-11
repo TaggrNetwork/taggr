@@ -1,6 +1,6 @@
 use self::invoices::Invoice;
 use self::proposals::Status;
-use self::storage::heap_address;
+use self::storage::Storable;
 use self::token::account;
 use self::user::{Notification, Predicate};
 use crate::env::invoices::principal_to_subaccount;
@@ -123,6 +123,15 @@ pub struct State {
     pub module_hash: String,
     #[serde(skip)]
     pub last_upgrade: u64,
+}
+
+impl Storable for State {
+    fn to_bytes(&self) -> Vec<u8> {
+        serde_cbor::to_vec(&self).expect("couldn't serialize the state")
+    }
+    fn from_bytes(bytes: Vec<u8>) -> Self {
+        serde_cbor::from_slice(&bytes).expect("couldn't deserialize")
+    }
 }
 
 #[derive(Default, Deserialize, Serialize)]
@@ -1332,7 +1341,7 @@ impl State {
                 .filter(|u| u.is_bot())
                 .map(|u| u.id)
                 .collect(),
-            state_size: heap_address().1,
+            state_size: self.storage.size(),
             invited_users: self
                 .users
                 .values()
