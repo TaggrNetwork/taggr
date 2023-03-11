@@ -15,7 +15,6 @@ ic-cdk = { version = "0.6.8", features = ["timers"] }
 ic-cdk-macros = "0.6.8"
 ic-certified-map = "0.3.2"
 ic-ledger-types = "0.2.0"
-ic-stable-structures = "0.5.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_bytes = "0.11.6"
 serde_cbor = "0.11"

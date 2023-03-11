@@ -1,6 +1,9 @@
 use crate::canisters::{install, CanisterInstallMode};
 use candid::Principal;
-use ic_cdk::api::call::call_raw;
+use ic_cdk::api::{
+    call::call_raw,
+    stable::{stable64_grow, stable64_read, stable64_size, stable64_write},
+};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -36,7 +39,7 @@ impl Storage {
     }
 
     #[allow(dead_code)]
-    pub async fn upgrade_buckets(&self) -> Result<(), String> {
+    async fn upgrade_buckets(&self) -> Result<(), String> {
         for id in self.buckets.keys() {
             install(*id, BUCKET_WASM_GZ, CanisterInstallMode::Upgrade).await?;
         }
@@ -58,4 +61,44 @@ impl Storage {
         self.buckets.insert(id, offset + blob.len() as u64);
         Ok((id, offset))
     }
+}
+
+pub fn heap_to_stable(state: &super::State) {
+    let buffer: Vec<u8> = serde_cbor::to_vec(state).expect("couldn't serialize the state");
+    let len = 16 + buffer.len() as u64;
+    if len > (stable64_size() << 16) && stable64_grow((len >> 16) + 1).is_err() {
+        panic!("Couldn't grow memory");
+    }
+    stable64_write(16, &buffer);
+    stable64_write(0, &16_u64.to_be_bytes());
+    stable64_write(8, &(buffer.len() as u64).to_be_bytes());
+}
+
+pub fn heap_address() -> (u64, u64) {
+    let mut offset_bytes: [u8; 8] = Default::default();
+    stable64_read(0, &mut offset_bytes);
+    let offset = u64::from_be_bytes(offset_bytes);
+    let mut len_bytes: [u8; 8] = Default::default();
+    stable64_read(8, &mut len_bytes);
+    let len = u64::from_be_bytes(len_bytes);
+    (offset, len)
+}
+
+pub fn stable_to_heap() -> super::State {
+    let (offset, len) = heap_address();
+    ic_cdk::println!(
+        "Reading heap from coordinates: {:?}, stable memory size: {}",
+        (offset, len),
+        (stable64_size() << 16)
+    );
+
+    let mut bytes = Vec::with_capacity(len as usize);
+    bytes.spare_capacity_mut();
+    unsafe {
+        bytes.set_len(len as usize);
+    }
+
+    // Restore heap
+    stable64_read(offset, &mut bytes);
+    serde_cbor::from_slice(&bytes).expect("couldn't deserialize")
 }
