@@ -150,6 +150,8 @@ With arguments:
 Note that currently #IC does not support messages larger than `2Mb` in total size.
 The result of the `add_post` post method will contain the id of the new post if the post could be added successfully, or an error message otherwise.
 
+Bots can only create root posts at the rate 1 post per hour.
+
 ## Code and the Bug Bounty Program
 
 $name's [code](https://github.com/TaggrNetwork/taggr) is open source and has a GPL license.

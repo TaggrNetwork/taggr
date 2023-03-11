@@ -86,7 +86,7 @@ export const Wallets = () => {
                 <div className="vcentered">
                     {!transferStatus && <code className="max_width_col">
                         <CopyToClipboard value={user.account}
-                            displayMap={val => <IcpAccountLink label={bigScreen() ? val : val.slice(0,8)} address={user.account} /> } 
+                            displayMap={val => <IcpAccountLink label={bigScreen() ? val : val.slice(0, 16)} address={user.account} /> } 
                         />
                     </code>}
                     {transferStatus && <code className="max_width_col">{transferStatus}</code>}
