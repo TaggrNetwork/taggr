@@ -1,6 +1,5 @@
 use self::invoices::Invoice;
 use self::proposals::Status;
-use self::storage::Storable;
 use self::token::account;
 use self::user::{Notification, Predicate};
 use crate::env::invoices::principal_to_subaccount;
@@ -12,6 +11,7 @@ use ic_cdk::export::candid::Principal;
 use ic_ledger_types::Tokens;
 use invoices::e8s_to_icp;
 use invoices::Invoices;
+use memory::Storable;
 use post::{Post, PostId};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -22,6 +22,7 @@ use user::{User, UserId};
 pub mod canisters;
 pub mod config;
 pub mod invoices;
+pub mod memory;
 pub mod post;
 pub mod proposals;
 pub mod reports;
@@ -116,8 +117,10 @@ pub struct State {
     pub proposals: Vec<Proposal>,
     pub ledger: Vec<Transaction>,
 
-    #[serde(default)]
     pub team_tokens: HashMap<UserId, Token>,
+
+    #[serde(default)]
+    pub memory: memory::Memory,
 
     #[serde(skip)]
     pub module_hash: String,
@@ -1341,7 +1344,7 @@ impl State {
                 .filter(|u| u.is_bot())
                 .map(|u| u.id)
                 .collect(),
-            state_size: self.storage.size(),
+            state_size: self.memory.size(),
             invited_users: self
                 .users
                 .values()
