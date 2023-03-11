@@ -1,6 +1,8 @@
 use ic_cdk::api::stable::{stable64_grow, stable64_read, stable64_size, stable64_write};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+
+use super::post::{Post, PostId};
 
 pub trait Storable {
     fn to_bytes(&self) -> Vec<u8>;
@@ -10,13 +12,16 @@ pub trait Storable {
 #[derive(Default, Serialize, Deserialize)]
 pub struct Memory {
     allocator: Allocator,
+    #[serde(skip)]
+    posts: ObjectManager<PostId, Post>,
 }
 
 const INITIAL_OFFSET: u64 = 16;
+const MAX_CACHE_SIZE: usize = 1000;
 
 impl Memory {
-    pub fn write<T: Serialize>(&mut self, value: &T) -> (u64, u64) {
-        let buffer: Vec<u8> = serde_cbor::to_vec(value).expect("couldn't serialize the state");
+    pub fn write<T: Storable>(&mut self, value: &T) -> (u64, u64) {
+        let buffer: Vec<u8> = value.to_bytes();
         let offset = self.allocator.alloc(buffer.len() as u64);
         stable64_write(offset, &buffer);
         (offset, buffer.len() as u64)
@@ -58,11 +63,7 @@ pub fn heap_address() -> (u64, u64) {
 
 pub fn stable_to_heap() -> super::State {
     let (offset, len) = heap_address();
-    ic_cdk::println!(
-        "Reading heap from coordinates: {:?}, stable memory size: {}",
-        (offset, len),
-        (stable64_size() << 16)
-    );
+    ic_cdk::println!("Reading heap from coordinates: {:?}", (offset, len),);
     Memory::read(offset, len)
 }
 
@@ -183,6 +184,61 @@ impl Allocator {
 
     fn seg(&self, start: u64) -> u64 {
         self.segments.get(&start).copied().expect("no segment")
+    }
+}
+
+#[derive(Default, Serialize, Deserialize)]
+struct ObjectManager<K: Ord + Eq, T: Storable> {
+    index: BTreeMap<K, (u64, u64)>,
+    #[serde(skip)]
+    cache: BTreeMap<K, T>,
+    dirty: BTreeSet<K>,
+}
+
+impl<K: Eq + Ord + Copy, T: Storable> ObjectManager<K, T> {
+    fn insert(&mut self, mem: &mut Memory, id: K, value: T) {
+        self.index.insert(id, mem.write(&value));
+    }
+
+    fn get(&mut self, id: &K) -> Option<&'_ T> {
+        Some(
+            self.cache.entry(*id).or_insert(
+                self.index
+                    .get(id)
+                    .map(|(offset, len)| Memory::read(*offset, *len))?,
+            ),
+        )
+    }
+
+    fn get_mut(&mut self, id: &K) -> Option<&'_ mut T> {
+        self.dirty.insert(*id);
+        Some(
+            self.cache.entry(*id).or_insert(
+                self.index
+                    .get(id)
+                    .map(|(offset, len)| Memory::read(*offset, *len))?,
+            ),
+        )
+    }
+
+    fn sync(&mut self, mem: &mut Memory) -> usize {
+        let dirty = std::mem::take(&mut self.dirty);
+        let synced = dirty.len();
+        dirty.into_iter().for_each(|id| {
+            let val = self.cache.get(&id).expect("no value found");
+            let (off, len) = self.index.remove(&id).expect("no offset found");
+            mem.allocator.free(off, len);
+            self.index.insert(id, mem.write(val));
+        });
+        synced
+    }
+
+    fn clean_up(&mut self, mem: &mut Memory) -> usize {
+        let len = self.cache.len();
+        while self.cache.len() > MAX_CACHE_SIZE {
+            self.cache.pop_first();
+        }
+        len - self.cache.len()
     }
 }
 

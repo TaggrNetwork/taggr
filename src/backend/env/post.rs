@@ -40,6 +40,15 @@ pub struct Post {
     pub hashes: Vec<String>,
 }
 
+impl Storable for Post {
+    fn to_bytes(&self) -> Vec<u8> {
+        serde_cbor::to_vec(&self).expect("couldn't serialize the state")
+    }
+    fn from_bytes(bytes: Vec<u8>) -> Self {
+        serde_cbor::from_slice(&bytes).expect("couldn't deserialize")
+    }
+}
+
 impl Post {
     pub fn new(
         user: UserId,
