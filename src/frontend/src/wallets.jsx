@@ -52,6 +52,9 @@ const Welcome = () => {
                 <br />
                 <button className="active" onClick={() => { setInvoice(null); checkPayment()}}>CHECK PAYMENT</button></div>}
         </div>
+        <div className="small_text text_centered topped_up">
+            Principal ID: <CopyToClipboard value={api._principalId} />
+        </div>
     </>;
 }
 
@@ -142,8 +145,8 @@ export const Wallets = () => {
             </div>
         </div>
         <div className="spaced">
-            {api._user && <>
-                <h1>Cyles and Karma Accounting</h1>
+            {user.ledger.length > 0 && <>
+                <h1>Accounting</h1>
                 <table style={{width: "100%"}}>
                     <tbody>
                         {api._user.ledger.map(([type, delta, log], i) => 
@@ -155,9 +158,6 @@ export const Wallets = () => {
                     </tbody>
                 </table>
             </>}
-            <div className="small_text text_centered topped_up">
-                Principal ID: <CopyToClipboard value={api._principalId} />
-            </div>
         </div>
     </>;
 }

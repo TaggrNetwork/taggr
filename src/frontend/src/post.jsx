@@ -162,7 +162,7 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
         {showInfo && <div className="top_framed top_spaced">
             <div className="left_half_spaced right_half_spaced bottom_spaced top_spaced">
                 <div className="row_container vcentered bottom_spaced flex_ended">
-                    <a href={`#/post/${post.id}`}>{`#${post.id}${post.patches.length > 0 ? "*" : ""}`}</a>
+                    <a href={`#/post/${post.id}`}>#</a>
                     <ShareButton classNameArg="left_spaced"
                         url={`${isComment ? "thread" : "post"}/${post.id}${isNaN(version) ? "" : "/" + version}`}
                         title={`Post ${post.id} on ${backendCache.config.name}`} />
@@ -224,7 +224,6 @@ const PostInfo = ({post, version, postCreated, callback}) => {
                 } else await callback();
             }} label={<Coin />} />
             {postAuthor && <>
-                <button className="max_width_col" onClick={() => location.href=`/#/edit/${post.id}`}><Edit /></button>
                 {post.hashes.length == 0 && <ButtonWithLoading classNameArg="max_width_col" onClick={async () => {
                     const { post_cost, post_deletion_penalty_factor } = backendCache.config;
                     const cost = objectReduce(post.reactions, (acc, id, users) => {
@@ -246,6 +245,7 @@ const PostInfo = ({post, version, postCreated, callback}) => {
                         alert(`Error: ${response.Err}`);
                     } else await callback();
                 }} label={<Trash />} />}
+                <button className="max_width_col" onClick={() => location.href=`/#/edit/${post.id}`}><Edit /></button>
             </>}
         </div>}
         <div className="small_text top_spaced">

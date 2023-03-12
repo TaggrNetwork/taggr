@@ -50,39 +50,43 @@ export const Profile = ({handle}) => {
         <UserInfo profile={profile} />
         {trusted(profile) && !stalwart(profile) && !isBot(profile) && <>
             <hr />
-            <h2>Stalwart Progress</h2>
-            <div className={bigScreen() ? "four_column_grid" : "two_column_grid"}>
-                <div className="db_cell monospace">
-                    KARMA NEEDED
-                    <code>{Math.max(0, backendCache.stats.stalwarts[backendCache.stats.stalwarts.length-1] - profile.karma)}</code>
-                </div>
-                <div className="db_cell monospace">
-                    AGE NEEDED
-                    <code>{Math.ceil(Math.max(0, 
-                        (backendCache.config.min_stalwart_account_age_weeks * 7 * day - 
-                            (Number(new Date()) - parseInt(profile.timestamp) / 1000000)) / day / 7
-                    ))} WEEKS</code>
-                </div>
-                <div className="db_cell monospace">
-                    ACTIVITY NEEDED
-                    <code>{Math.max(0, backendCache.config.min_stalwart_activity_weeks - profile.active_weeks)} WEEKS</code>
+            <div className="spaced">
+                <h2>Stalwart Progress</h2>
+                <div className={bigScreen() ? "four_column_grid" : "two_column_grid"}>
+                    <div className="db_cell monospace">
+                        KARMA NEEDED
+                        <code>{Math.max(0, backendCache.stats.stalwarts[backendCache.stats.stalwarts.length-1] - profile.karma)}</code>
+                    </div>
+                    <div className="db_cell monospace">
+                        AGE NEEDED
+                        <code>{Math.ceil(Math.max(0, 
+                            (backendCache.config.min_stalwart_account_age_weeks * 7 * day - 
+                                (Number(new Date()) - parseInt(profile.timestamp) / 1000000)) / day / 7
+                        ))} WEEKS</code>
+                    </div>
+                    <div className="db_cell monospace">
+                        ACTIVITY NEEDED
+                        <code>{Math.max(0, backendCache.config.min_stalwart_activity_weeks - profile.active_weeks)} WEEKS</code>
+                    </div>
                 </div>
             </div>
         </>}
         {!trusted(profile) && <>
             <hr />
-            <h2>Bootcamp Progress</h2>
-            <div className="two_column_grid">
-                <div className="db_cell monospace">
-                    KARMA NEEDED
-                    <code>{Math.max(0, backendCache.config.trusted_user_min_karma - profile.karma)}</code>
-                </div>
-                <div className="db_cell monospace">
-                    TIME LEFT
-                    <code>{Math.ceil(Math.max(0, 
-                        (backendCache.config.trusted_user_min_age_weeks * 7 * day - 
-                            (Number(new Date()) - parseInt(profile.timestamp) / 1000000)) / day
-                    ))} DAYS</code>
+            <div className="spaced">
+                <h2>Bootcamp Progress</h2>
+                <div className="two_column_grid">
+                    <div className="db_cell monospace">
+                        KARMA NEEDED
+                        <code>{Math.max(0, backendCache.config.trusted_user_min_karma - profile.karma)}</code>
+                    </div>
+                    <div className="db_cell monospace">
+                        TIME LEFT
+                        <code>{Math.ceil(Math.max(0, 
+                            (backendCache.config.trusted_user_min_age_weeks * 7 * day - 
+                                (Number(new Date()) - parseInt(profile.timestamp) / 1000000)) / day
+                        ))} DAYS</code>
+                    </div>
                 </div>
             </div>
         </>}
