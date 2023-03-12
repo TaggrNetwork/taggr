@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ICPAccountBalance, intFromBEBytes, timeAgo, hoursTillNext, bigScreen, HeadBar, userList, token, UserLink, icpCode, IcpAccountLink } from "./common";
 import {Content} from "./content";
-import {ActiveUser, Binary, Bootcamp, Box, Canister, Canisters, Cash, CashCoin, Comment, Crowd, Cycles, Fire, Gear, Gem, Globe, HourGlass, Online, Post, StorageCanister, Treasury, User} from "./icons";
+import {ActiveUser, Binary, Bootcamp, Box, Canister, Canisters, Cash, CashCoin, Comment, Crowd, Cycles, Document, Fire, Gear, Gem, Globe, HourGlass, Online, Post, StorageCanister, Treasury, Trophy, User} from "./icons";
 
 const show = (number, unit = null) => <code>{number.toLocaleString()}{unit}</code>;
 
@@ -103,18 +103,18 @@ export const Dashboard = ({fullMode}) => {
                     </div>
                 </div>
                 <hr />
-                <h2>🥇 WEEKLY KARMA LEADERS</h2>
+                <h2><Trophy /> WEEKLY KARMA LEADERS</h2>
                 <hr />
                 <div className={bigScreen() ? "four_column_grid" : "two_column_grid_flex"}>
                     {stats.weekly_karma_leaders.map(([id, karma]) => <div key={id}><UserLink id={id} /> (<span className="accent">{karma.toLocaleString()}</span>)</div>)}
                 </div>
                 <hr />
-                <h2>📃 App events</h2>
+                <h2><Document /> Logs</h2>
                 <hr />
                 <Content value={logs.map(({timestamp, level, message}) => 
-                    `${level2icon(level)} ` +
                     `\`${shortDate(new Date(parseInt(timestamp) / 1000000))}\`: ` + 
-                    `${message}`).join("\n- - -\n")} classNameArg="monospace" />
+                    `${level2icon(level)} ` +
+                    `${message}`).join("\n\n")} classNameArg="monospace" />
             </div>
         }
     </>;
@@ -128,7 +128,7 @@ const shortDate = date => {
 const level2icon = level => {
     switch (level) {
         case "INFO":
-            return "ℹ️";
+            return "";
         case "ERROR":
             return "⚠️";
         case "CRITICAL":

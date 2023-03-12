@@ -86,8 +86,8 @@ export const Proposals = () => {
         <div className="vertically_spaced">
             {!proposals && <Loading />}
             {showMask && <div className="spaced column_container monospace">
-                <div className="row_container vcentered bottom_half_spaced">COMMIT<input type="text" className="monospace left_spaced max_width_col" onChange={async ev => { setCommit(ev.target.value); }} /></div>
-                <div className="row_container vcentered bottom_half_spaced">BINARY<input type="file" className="monospace left_spaced max_width_col" onChange={async ev => {
+                <div className="vcentered bottom_half_spaced">COMMIT<input type="text" className="monospace left_spaced max_width_col" onChange={async ev => { setCommit(ev.target.value); }} /></div>
+                <div className="vcentered bottom_half_spaced">BINARY<input type="file" className="monospace left_spaced max_width_col" onChange={async ev => {
                     const file = (ev.dataTransfer || ev.target).files[0];
                     const content = new Uint8Array(await loadFile(file));
                     if (content.byteLength > MAX_POST_SIZE_BYTES) {

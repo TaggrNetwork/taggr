@@ -30,7 +30,7 @@ export const RealmRibbon = ({col, name}) =>
 export const HeadBar = ({title, shareLink, shareTitle, content, menu}) => {
     const [showMenu, setShowMenu] = React.useState(false);
     return <div className="column_container stands_out bottom_spaced">
-        <div className="row_container vcentered">
+        <div className="vcentered">
             <div className={`max_width_col ${bigScreen() ? "x_large_text" : "larger_text"}`}>{title}</div>
             <div className="row_container flex_ended">
                 {shareLink && <ShareButton url={shareLink} title={shareTitle} classNameArg="right_half_spaced" />}
@@ -200,7 +200,7 @@ export const token = n => Math.ceil(n / Math.pow(10, backendCache.config.token_d
 
 export const ReactionToggleButton = ({icon, onClick, pressed, classNameArg}) => 
     <button data-meta="skipClicks" onClick={e => { e.preventDefault(); onClick(e)}}
-        className={`${pressed ? "" : "un"}selected reaction_button row_container_static vcentered ${classNameArg}`}>
+        className={`${pressed ? "" : "un"}selected reaction_button vcentered ${classNameArg}`}>
         {icon}
     </button>;
 

@@ -28,7 +28,7 @@ pub struct User {
     pub account: String,
     settings: String,
     karma: Karma,
-    rewarded_karma: Karma,
+    pub rewarded_karma: Karma,
     cycles: Cycles,
     pub feeds: Vec<BTreeSet<String>>,
     pub followees: BTreeSet<UserId>,
@@ -250,6 +250,7 @@ impl User {
             // if delta is negative and larger than collected rewards, destroy them and
             // subtract from total karma the rest.
             self.karma -= delta.abs() - self.rewarded_karma;
+            self.rewarded_karma = 0;
         } else {
             // if delta is negative and small than collected rewards, subtract from rewards
             self.rewarded_karma += delta;
@@ -329,5 +330,17 @@ mod tests {
         assert!(u.change_cycles(-156, "").is_err());
         assert!(u.change_cycles(-155, "").is_ok());
         assert_eq!(u.cycles(), 0);
+    }
+
+    #[test]
+    fn test_change_karma() {
+        let mut u = User::new(pr(1), 66, 0, Default::default());
+        u.karma = 100;
+        u.rewarded_karma = 100;
+        assert_eq!(u.karma(), 100);
+        assert_eq!(u.karma_to_reward(), 100);
+        u.change_karma(-150, "");
+        assert_eq!(u.karma(), 50);
+        assert_eq!(u.karma_to_reward(), 0);
     }
 }

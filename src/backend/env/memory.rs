@@ -44,7 +44,7 @@ impl Memory {
     pub fn report_health(&self, logger: &mut super::Logger) {
         let cache_size = self.posts.cache.len();
         logger.info(format!(
-            "Memory health: {}, cache_size={}",
+            "Memory health: {}, cached_objects=`{}`",
             self.allocator.health(),
             cache_size
         ));
@@ -209,10 +209,11 @@ impl Allocator {
     }
 
     fn health(&self) -> String {
+        let megabyte = 1024 * 1024;
         format!(
-            "boundary={}, mem_size={}, segments={:?}",
-            self.boundary,
-            self.mem_size.as_ref().map(|f| f()).unwrap_or_default(),
+            "boundary=`{}Mb`, mem_size=`{}Mb`, segments=`{:?}`",
+            self.boundary / megabyte,
+            self.mem_size.as_ref().map(|f| f()).unwrap_or_default() / megabyte,
             &self.segments.len(),
         )
     }

@@ -6,6 +6,7 @@ use crate::env::invoices::principal_to_subaccount;
 use crate::proposals::Proposal;
 use crate::token::{Account, Token, Transaction};
 use config::{CONFIG, ICP_CYCLES_PER_XDR};
+use ic_cdk::api::stable::stable64_size;
 use ic_cdk::api::{self, canister_balance};
 use ic_cdk::export::candid::Principal;
 use ic_ledger_types::Tokens;
@@ -1346,7 +1347,7 @@ impl State {
                 .filter(|u| u.is_bot())
                 .map(|u| u.id)
                 .collect(),
-            state_size: self.memory.size(),
+            state_size: stable64_size() << 16,
             invited_users: self
                 .users
                 .values()
@@ -1458,6 +1459,8 @@ impl State {
             ));
         }
 
+        let mut karma_penalty = post.children.len() as i64 * CONFIG.response_reward;
+
         // refund rewards
         for (users, amount) in reaction_costs {
             for user_id in users {
@@ -1468,7 +1471,8 @@ impl State {
                     0,
                     Destination::Cycles,
                     format!("rewards refund after deletion of post {}", post.id),
-                )?
+                )?;
+                karma_penalty += amount;
             }
         }
 
@@ -1478,6 +1482,13 @@ impl State {
             CONFIG.post_cost + comments_tree_penalty,
             format!("deletion of post {}", post.id),
         )?;
+
+        // subtract all rewards from karma
+        self.users
+            .get_mut(&post.user)
+            .expect("no user found")
+            .change_karma(-karma_penalty, format!("deletion of post {}", post.id));
+
         self.posts
             .get_mut(&post_id)
             .expect("no post found")
@@ -1774,6 +1785,8 @@ pub(crate) mod tests {
         let mut state = State::default();
 
         let id = create_user(&mut state, pr(0));
+        let user = state.users.get_mut(&id).unwrap();
+        assert_eq!(user.karma_to_reward(), 0);
         let upvoter_id = create_user(&mut state, pr(1));
         let user = state.users.get_mut(&upvoter_id).unwrap();
         let upvoter_cycles = user.cycles();
@@ -1820,6 +1833,11 @@ pub(crate) mod tests {
         assert!(state.react(pr(2), post_id, 50, 0).is_ok());
 
         assert_eq!(
+            state.users.get(&id).unwrap().karma_to_reward(),
+            10 + 5 + 2 * CONFIG.response_reward
+        );
+
+        assert_eq!(
             state.users.get_mut(&upvoter_id).unwrap().cycles(),
             // reward + fee + post creation
             upvoter_cycles - 10 - 1 - 2
@@ -1852,10 +1870,11 @@ pub(crate) mod tests {
         assert_eq!(state.posts.get(&0).unwrap().hashes.len(), versions.len());
 
         assert_eq!(
-            state.users.get_mut(&upvoter_id).unwrap().cycles(),
+            state.users.get(&upvoter_id).unwrap().cycles(),
             // reward received back
             upvoter_cycles - 10 - 1 - 2 + 10
         );
+        assert_eq!(state.users.get(&id).unwrap().karma_to_reward(), 0);
     }
 
     #[actix_rt::test]

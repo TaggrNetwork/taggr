@@ -39,7 +39,7 @@ export const RealmForm = ({existingName}) => {
 
     const valid = name && description && controllers.length > 0;
     return <div className="spaced">
-        <h1 className="row_container vcentered">
+        <h1 className="vcentered">
             {logo && <img alt="Logo" className="right_spaced" style={{ maxWidth: "70px"}} src={`data:image/png;base64, ${logo}`} />}
             <span className="max_width_col">{editing ? "EDIT" : "CREATE"} REALM</span>
         </h1>
@@ -132,7 +132,7 @@ export const RealmPage = ({name}) => {
     setTitle(`realm ${name}`);
     const user = api._user;
     return <>
-        <HeadBar title={<div className="row_container vcentered max_width_col">
+        <HeadBar title={<div className="vcentered max_width_col">
             {realm.logo && <img alt="Logo" className="right_half_spaced" style={{ maxWidth: "40px"}} src={`data:image/png;base64, ${realm.logo}`} />}
             {name}
         </div>} shareLink={`realm/${name.toLowerCase()}`} shareTitle={`Realm ${name} on ${backendCache.name}`}
@@ -179,7 +179,7 @@ export const Realms = () => {
             {realms.map(([name, realm]) =>{
                 return <div key={name} className="stands_out" style={{position: "relative"}}>
                     <RealmRibbon name={name} />
-                    <h3 className="row_container vcentered">
+                    <h3 className="vcentered">
                         {realm.logo && <img alt="Logo" className="right_spaced" style={{ maxWidth: "70px"}} src={`data:image/png;base64, ${realm.logo}`} />}
                         <span className="max_width_col">
                             <a href={`/#/realm/${name.toLowerCase()}`}>{name}</a>

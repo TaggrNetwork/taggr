@@ -35,7 +35,7 @@ export const Poll = ({poll, post_id, created}) => {
                     }} />}
                 <Content classNameArg="max_width_col clickable" value={option} />
                 {!showVoting && <div className="column_container" style={{margin: "0.5em", width: "96%"}}>
-                    <div className="row_container vcentered">
+                    <div className="vcentered">
                         <code className="right_half_spaced small_text"
                             style={{width: "6em", textAlign: "right", alignSelf: "flex-start"}}>{`${votes} (${pc} %)`}</code>
                         <div className="max_width_col">

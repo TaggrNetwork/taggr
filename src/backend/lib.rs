@@ -72,6 +72,10 @@ fn post_upgrade() {
     set_timer();
 
     // temporary post upgrade logic goes here
+
+    // User's post was reported, but due to a bug in karma accounting, the new karma wasn't
+    // subtracted. 129 is the number of points that should have been subtracted
+    state_mut().users.get_mut(&1075).unwrap().rewarded_karma -= 129;
 }
 
 /*
@@ -86,6 +90,7 @@ fn post_upgrade() {
 #[update]
 fn add_bucket(id: String) {
     use candid::Principal;
+    state_mut().storage.buckets.clear();
     state_mut()
         .storage
         .buckets

@@ -1,6 +1,7 @@
 import {CopyToClipboard, HeadBar, Loading, hex, ICPAccountBalance, tokenBalance, ButtonWithLoading, bigScreen, IcpAccountLink} from "./common";
 import * as React from "react";
 import {Transactions} from "./tokens";
+import {Cycles, YinYan} from "./icons";
 
 const Welcome = () => {
     const [invoice, setInvoice] = React.useState(null);
@@ -20,7 +21,7 @@ const Welcome = () => {
 
     return <>
         <HeadBar title={"Welcome!"} shareLink="welcome" />
-        <div className="spaced vertically_spaced">
+        <div className="spaced">
             <div className="bottom_spaced">
                 To join {backendCache.config.name} you need to mint cycles.
                 You get <code>1000</code> cycles for as little as <code>~1.3 USD</code> (corresponds to 1 <a href="https://en.wikipedia.org/wiki/Special_drawing_rights">XDR</a>) paid by ICP.
@@ -58,7 +59,7 @@ const Welcome = () => {
     </>;
 }
 
-export const Wallets = () => {
+export const Wallet = () => {
     const [user, setUser] = React.useState(api._user);
     const [mintStatus, setMintStatus] = React.useState(null);
     const [transferStatus, setTransferStatus] = React.useState(null);
@@ -77,7 +78,7 @@ export const Wallets = () => {
 
     return <>
         <HeadBar title={"Wallets"} shareLink="wallets" />
-        <div className="spaced vertically_spaced">
+        <div className="spaced">
             <div className="stands_out">
                 <div className="vcentered">
                     <h1 className="max_width_col">ICP</h1>
@@ -151,7 +152,7 @@ export const Wallets = () => {
                     <tbody>
                         {api._user.ledger.map(([type, delta, log], i) => 
                         <tr className="stands_out" key={type+log+i}>
-                            <td>{type == "KRM" ? "☯️" : "⚡️"}</td>
+                            <td>{type == "KRM" ? <YinYan /> : <Cycles />}</td>
                             <td style={{color: delta > 0 ? "green" : "red"}}>{delta > 0 ? "+" : ""}{delta}</td>
                             <td>{linkPost(log)}</td>
                         </tr>)}

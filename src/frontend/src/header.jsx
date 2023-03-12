@@ -33,14 +33,16 @@ export const Header = ({subtle, route}) => {
                     await api._reloadUser();
                     location.href = "/#/main";
                 }}
-                label={<div className="row_container vcentered">
+                label={<div className="vcentered">
                     <RealmSpan classNameArg="padded_rounded smaller_text" name={user.current_realm}/>
                     <Close styleArg={{fill: realmFg}} small={true} />
                 </div>}
             />}
-            <div className="row_container vcentered max_width_col flex_ended">
+            <div className="vcentered max_width_col flex_ended">
                 {!subtle &&  <>
-                    {user && !inboxEmpty && <span className="clickable" onClick={() => location.href = "#/inbox"}><Bell /><code className="left_half_spaced right_spaced">{`${Object.keys(user.inbox).length}`}</code></span>}
+                    {user && !inboxEmpty && <span className="clickable vcentered" onClick={() => location.href = "#/inbox"}>
+                        <Bell /><code className="left_half_spaced right_spaced">{`${Object.keys(user.inbox).length}`}</code>
+                    </span>}
                     {user && inboxEmpty && <div className="vcentered"><Cycles /><code className="left_half_spaced right_spaced">{`${user.cycles}`}</code></div>}
                     {user && (bigScreen() || !user.current_realm) && <PostButton classNameArg="right_half_spaced" />}
                     {!api._principalId && <ToggleButton 

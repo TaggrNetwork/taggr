@@ -161,7 +161,7 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
         </div>
         {showInfo && <div className="top_framed top_spaced">
             <div className="left_half_spaced right_half_spaced bottom_spaced top_spaced">
-                <div className="row_container vcentered bottom_spaced flex_ended">
+                <div className="vcentered bottom_spaced flex_ended">
                     <a href={`#/post/${post.id}`}>#</a>
                     <ShareButton classNameArg="left_spaced"
                         url={`${isComment ? "thread" : "post"}/${post.id}${isNaN(version) ? "" : "/" + version}`}
@@ -282,16 +282,16 @@ const PostBar = ({post, react, highlighted, highlightOp, repost, showInfo, toggl
     const bar = React.useRef();
     const showCarret = level > (bar.current?.clientWidth > 900 ? 13 : 3);
     const goInside = () => location.href = `#/post/${post.id}`;
-    return <div ref={bar} className="post_bar row_container_static vcentered smaller_text flex_ended">
-        <div className="row_container">
+    return <div ref={bar} className="post_bar vcentered smaller_text flex_ended">
+        <div className="vcentered">
             <a className={`right_spaced ${highlightOp ? "accent" : ""}`}
                 href={`#/user/${post.user.id}`}>{`${post.user.name}`}</a>
-            <span className="no_wrap">
-                <span className="right_spaced">{time}</span>
-                {newPost && <New classNameArg="accent vertically_aligned" /> }
-            </span>
+            <div className="right_spaced no_wrap vcentered">
+                {time}
+                {newPost && <New classNameArg="left_half_spaced accent" /> }
+            </div>
         </div>
-        {!repost && <div className="row_container_static max_width_col flex_ended">
+        {!repost && <div className="vcentered max_width_col flex_ended">
             <Reactions reactionsMap={post.reactions} react={react} />
             {replies > 0 && !isThreadView && <ReactionToggleButton pressed={showComments}
                 onClick={showCarret ? goInside : () => { toggleInfo(false); toggleComments(!showComments) }}
@@ -312,7 +312,7 @@ export const ReactionsPicker = ({react}) => {
 
 export const Reactions = ({reactionsMap, react}) => {
     if (Object.keys(reactionsMap).length == 0) return null;
-    return <div className="row_container_static vcentered flex_ended">
+    return <div className="vcentered flex_ended">
         {Object.keys(reactionsMap).map(id => {
             const users = reactionsMap[id];
             const reacted = users.includes(api._user?.id);

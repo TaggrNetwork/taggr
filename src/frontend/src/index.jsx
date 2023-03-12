@@ -19,7 +19,7 @@ import { Header } from './header';
 import { NotFound, Unauthorized, microSecsSince, HeadBar, setTitle } from './common';
 import { Settings } from './settings';
 import { Api } from "./api";
-import { Wallets } from "./wallets";
+import { Wallet } from "./wallet";
 import { applyTheme } from "./theme";
 import {Proposals} from "./proposals";
 import {Tokens, Transaction} from "./tokens";
@@ -96,7 +96,7 @@ const App = () => {
                 <LoginMasks />
             </article>;
     } else if (handler == "wallet" || (api._principalId && !api._user)) {
-        content = <Wallets />;
+        content = <Wallet />;
     } else if (handler == "post") {
         const id = parseInt(param);
         const version = parseInt(param2);

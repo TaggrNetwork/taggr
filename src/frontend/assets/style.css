@@ -448,8 +448,6 @@ div.thumbnails {
 
 .flex_ended { justify-content: flex-end; }
 
-.row_container_static { display: flex; }
-
 .row_container {
     display: flex;
     flex-wrap: wrap;
