@@ -114,7 +114,7 @@ export const Wallets = () => {
                         setMintStatus("SUCCESS!");
                     }} label="MINT" />
                 </div>
-                <div className="row_container vcentered">
+                <div className="vcentered">
                     <div className="max_width_col">
                         {mintStatus && <code>{mintStatus}</code>}
                     </div>
@@ -123,7 +123,10 @@ export const Wallets = () => {
             </div>
             <div className="stands_out">
                 <h1>{token_symbol} TOKENS</h1>
-                <div className="row_container vcentered"><code className="max_width_col">BALANCE</code><code className="xx_large_text">{tokenBalance(user)}</code></div>
+                <div className="vcentered">
+                    <code className="max_width_col"><CopyToClipboard value={user.principal} displayMap={val => bigScreen() ? val : val.split("-")[0]} /></code>
+                    <code className="xx_large_text">{tokenBalance(user)}</code>
+                </div>
             </div>
         </div>
         <div className="spaced">
