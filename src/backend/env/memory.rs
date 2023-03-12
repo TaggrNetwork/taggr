@@ -233,7 +233,7 @@ impl<K: Eq + Ord + Copy, T: Storable> ObjectManager<K, T> {
         synced
     }
 
-    fn clean_up(&mut self, mem: &mut Memory) -> usize {
+    fn clean_up(&mut self) -> usize {
         let len = self.cache.len();
         while self.cache.len() > MAX_CACHE_SIZE {
             self.cache.pop_first();
