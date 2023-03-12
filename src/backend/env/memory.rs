@@ -20,11 +20,11 @@ const INITIAL_OFFSET: u64 = 16;
 const MAX_CACHE_SIZE: usize = 1000;
 
 impl Memory {
-    pub fn write<T: Storable>(&mut self, value: &T) -> (u64, u64) {
+    pub fn write<T: Storable>(&mut self, value: &T) -> Result<(u64, u64), String> {
         let buffer: Vec<u8> = value.to_bytes();
-        let offset = self.allocator.alloc(buffer.len() as u64);
+        let offset = self.allocator.alloc(buffer.len() as u64)?;
         stable64_write(offset, &buffer);
-        (offset, buffer.len() as u64)
+        Ok((offset, buffer.len() as u64))
     }
 
     pub fn size(&self) -> u64 {
@@ -42,11 +42,25 @@ impl Memory {
     }
 }
 
-pub fn heap_to_stable(state: &super::State) {
+pub fn heap_to_stable(state: &mut super::State) {
     let mut memory: Memory = Default::default();
     memory.allocator.segments = state.memory.allocator.segments.clone();
     memory.allocator.boundary = state.memory.allocator.boundary;
-    let (offset, len) = memory.write(state);
+    let (offset, len) = match memory.write(state) {
+        Ok(values) => values,
+        // Plan B: if the allocator ever fails, just dump the heap at the end of stable memory
+        Err(err) => {
+            state.logger.log(
+                format!("Allocator failed when dumping the heap: {:?}", err),
+                "CRITICAL".into(),
+            );
+            let bytes = state.to_bytes();
+            let offset = stable64_size() >> 16;
+            stable64_grow(1 + (bytes.len() as u64 >> 16)).expect("couldn't grow memory");
+            stable64_write(offset, &bytes);
+            (offset, bytes.len() as u64)
+        }
+    };
     stable64_write(0, &offset.to_be_bytes());
     stable64_write(8, &len.to_be_bytes());
 }
@@ -72,7 +86,7 @@ struct Allocator {
     segments: BTreeMap<u64, u64>,
     boundary: u64,
     #[serde(skip)]
-    mem_grow: Option<Box<dyn FnMut(u64)>>,
+    mem_grow: Option<Box<dyn FnMut(u64) -> Result<u64, String>>>,
     #[serde(skip)]
     mem_size: Option<Box<dyn Fn() -> u64>>,
 }
@@ -84,14 +98,15 @@ impl Default for Allocator {
             boundary: INITIAL_OFFSET,
             mem_size: Some(Box::new(|| stable64_size() << 16)),
             mem_grow: Some(Box::new(|n| {
-                stable64_grow(n >> 16).expect("couldn't grow memory");
+                stable64_grow((n >> 16) + 1)
+                    .map_err(|err| format!("couldn't grow memory: {:?}", err))
             })),
         }
     }
 }
 
 impl Allocator {
-    fn alloc(&mut self, n: u64) -> u64 {
+    fn alloc(&mut self, n: u64) -> Result<u64, String> {
         // find all segments that are big enough
         let mut candidates = BTreeMap::new();
         for (start, size) in self.segments.iter() {
@@ -114,7 +129,7 @@ impl Allocator {
                 let boundary = self.boundary;
                 self.boundary += n;
                 if self.boundary >= (self.mem_size.as_ref().unwrap())() {
-                    (self.mem_grow.as_mut().unwrap())(n);
+                    (self.mem_grow.as_mut().unwrap())(n)?;
                 }
                 (boundary, None)
             }
@@ -130,10 +145,10 @@ impl Allocator {
             self.boundary,
             (self.mem_size.as_ref().unwrap())()
         );
-        start
+        Ok(start)
     }
 
-    fn free(&mut self, offset: u64, size: u64) {
+    fn free(&mut self, offset: u64, size: u64) -> Result<(), String> {
         let left_segment = self.segments.range(..offset).last().map(|(a, b)| (*a, *b));
         let right_segment = self
             .segments
@@ -141,10 +156,23 @@ impl Allocator {
             .next()
             .map(|(a, b)| (*a, *b));
         match (left_segment, right_segment) {
+            (_, Some((r_start, r_size))) if offset + size > r_start => {
+                return Err(format!(
+                    "right segment {:?} overlaps with deallocating {:?}",
+                    (r_start, r_size),
+                    (offset, size)
+                ))
+            }
+            (Some((l_start, l_size)), _) if l_start + l_size > offset => {
+                return Err(format!(
+                    "left segment {:?} overlaps with deallocating {:?}",
+                    (l_start, l_size),
+                    (offset, size)
+                ))
+            }
             (Some((l_start, l_size)), Some((r_start, r_size)))
                 if l_start + l_size == offset && offset + size == r_start =>
             {
-                assert!(offset + size <= r_start);
                 self.segments
                     .remove(&l_start)
                     .expect("no left segment found");
@@ -154,7 +182,6 @@ impl Allocator {
                 self.segments.insert(l_start, l_size + size + r_size);
             }
             (_, Some((r_start, r_size))) if offset + size == r_start => {
-                assert!(offset + size <= r_start);
                 self.segments
                     .remove(&r_start)
                     .expect("no right segment found");
@@ -176,12 +203,15 @@ impl Allocator {
             self.boundary,
             (self.mem_size.as_ref().unwrap())()
         );
+        Ok(())
     }
 
+    #[cfg(test)]
     fn segs(&self) -> usize {
         self.segments.len()
     }
 
+    #[cfg(test)]
     fn seg(&self, start: u64) -> u64 {
         self.segments.get(&start).copied().expect("no segment")
     }
@@ -196,8 +226,9 @@ struct ObjectManager<K: Ord + Eq, T: Storable> {
 }
 
 impl<K: Eq + Ord + Copy, T: Storable> ObjectManager<K, T> {
-    fn insert(&mut self, mem: &mut Memory, id: K, value: T) {
-        self.index.insert(id, mem.write(&value));
+    fn insert(&mut self, mem: &mut Memory, id: K, value: T) -> Result<(), String> {
+        self.index.insert(id, mem.write(&value)?);
+        Ok(())
     }
 
     fn get(&mut self, id: &K) -> Option<&'_ T> {
@@ -221,16 +252,16 @@ impl<K: Eq + Ord + Copy, T: Storable> ObjectManager<K, T> {
         )
     }
 
-    fn sync(&mut self, mem: &mut Memory) -> usize {
+    fn sync(&mut self, mem: &mut Memory) -> Result<usize, String> {
         let dirty = std::mem::take(&mut self.dirty);
         let synced = dirty.len();
-        dirty.into_iter().for_each(|id| {
+        for id in dirty {
             let val = self.cache.get(&id).expect("no value found");
             let (off, len) = self.index.remove(&id).expect("no offset found");
-            mem.allocator.free(off, len);
-            self.index.insert(id, mem.write(val));
-        });
-        synced
+            mem.allocator.free(off, len)?;
+            self.index.insert(id, mem.write(val)?);
+        }
+        Ok(synced)
     }
 
     fn clean_up(&mut self) -> usize {

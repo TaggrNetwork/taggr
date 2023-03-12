@@ -54,7 +54,7 @@ fn init() {
 
 #[pre_upgrade]
 fn pre_upgrade() {
-    env::memory::heap_to_stable(state());
+    env::memory::heap_to_stable(state_mut());
 }
 
 #[post_upgrade]
