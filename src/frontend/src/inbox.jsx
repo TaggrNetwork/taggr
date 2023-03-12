@@ -11,6 +11,8 @@ export const Inbox = () => {
         location.href = "#/";
     }
     ids.sort((a, b) => {
+        if (a.startsWith("condition") && !b.startsWith("condition")) return -1;
+        if (!a.startsWith("condition") && b.startsWith("condition")) return 1;
         if (a.startsWith("watched") && !b.startsWith("watched")) return 1;
         if (!a.startsWith("watched") && b.startsWith("watched")) return -1;
         return a < b;
