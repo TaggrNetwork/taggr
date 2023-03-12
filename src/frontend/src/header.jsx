@@ -22,7 +22,7 @@ export const Header = ({subtle, route}) => {
     React.useEffect(() => { toggleButtonBar(false); toggleRealms(false) }, [route]);
     return <>
         <header className={`spaced top_half_spaced vcentered ${subtle ? "subtle" : ""}`}>
-            <a className={!bigScreen() && inRealm ? "desktop_only" : null} href="#/home" id="logo"></a>
+            <a href="#/home" id="logo"></a>
             {user && user.realms.length > 0 && !subtle && <ReactionToggleButton classNameArg="left_half_spaced"
                 pressed={showRealms} onClick={() => { toggleRealms(!showRealms); toggleButtonBar(false) }}
                 icon={<CarretDown classNameArg="large_text" />} />}
@@ -38,26 +38,29 @@ export const Header = ({subtle, route}) => {
                     <Close styleArg={{fill: realmFg}} small={true} />
                 </div>}
             />}
-            {!subtle && <div className="row_container vcentered max_width_col flex_ended">
-                {user && !inboxEmpty && <span className="clickable" onClick={() => location.href = "#/inbox"}><Bell /><code className="left_half_spaced right_spaced">{`${Object.keys(user.inbox).length}`}</code></span>}
-                {user && inboxEmpty && <div className="vcentered"><Cycles /><code className="left_half_spaced right_spaced">{`${user.cycles}`}</code></div>}
-                {user && <button className="right_half_spaced active" onClick={() => location.href = "#/new"}>POST</button>}
-                {!api._principalId && <ToggleButton 
-                    classNameArg={!showLogins && "active"}
-                    toggler={() => setShowLogins(!showLogins)} currState={() => showLogins} onLabel="CLOSE" offLabel="ENTER" />}
+            <div className="row_container vcentered max_width_col flex_ended">
+                {!subtle &&  <>
+                    {user && !inboxEmpty && <span className="clickable" onClick={() => location.href = "#/inbox"}><Bell /><code className="left_half_spaced right_spaced">{`${Object.keys(user.inbox).length}`}</code></span>}
+                    {user && inboxEmpty && <div className="vcentered"><Cycles /><code className="left_half_spaced right_spaced">{`${user.cycles}`}</code></div>}
+                    {user && (bigScreen() || !user.current_realm) && <PostButton classNameArg="right_half_spaced" />}
+                    {!api._principalId && <ToggleButton 
+                        classNameArg={!showLogins && "active"}
+                        toggler={() => setShowLogins(!showLogins)} currState={() => showLogins} onLabel="CLOSE" offLabel="ENTER" />}
+                </>}
                 {api._principalId && 
                     <BurgerButton onClick={() => { toggleButtonBar(!showButtonBar); toggleRealms(false) }} pressed={showButtonBar} />}
-            </div>}
+            </div>
         </header>
         {showLogins && <LoginMasks />}
+        {showButtonBar && (!bigScreen() && user.current_realm) && <div className="spaced row_container"><PostButton classNameArg="max_width_col" /></div>}
         {showButtonBar && <div className="two_column_grid monospace top_spaced stands_out" style={{ rowGap: "1em" }}>
-            {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/journal/${user.name}`}>📓 JOURNAL</a>}
-            {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/user/${user.name}`}>👤 {api._user.name.toUpperCase()}</a>}
-            {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/realms`}>🎭 REALMS</a>}
-            {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/bookmarks`}>📑 BOOKMARKS</a>}
-            {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/wallets">💳 WALLETS</a>}
-            {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/invites">🎟 INVITES</a>}
-            {api._user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/settings">⚙️ SETTINGS</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/journal/${user.name}`}>📓 JOURNAL</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/user/${user.name}`}>👤 {api._user.name.toUpperCase()}</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/realms`}>🎭 REALMS</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/bookmarks`}>📑 BOOKMARKS</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/wallets">💳 WALLETS</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/invites">🎟 INVITES</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/settings">⚙️ SETTINGS</a>}
             <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/dashboard">📊 DASHBOARD</a>
             <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/tokenomics">💎 TOKENOMICS</a>
             <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/proposals">🎈 PROPOSALS</a>
@@ -80,3 +83,5 @@ export const Header = ({subtle, route}) => {
     </>;
 }
 
+const PostButton = ({classNameArg}) =>
+    <button className={`active ${classNameArg || ""}`} onClick={() => location.href = "#/new"}>POST</button>;
