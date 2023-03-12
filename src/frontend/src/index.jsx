@@ -95,7 +95,7 @@ const App = () => {
                 <hr />
                 <LoginMasks />
             </article>;
-    } else if (handler == "wallets" || (api._principalId && !api._user)) {
+    } else if (handler == "wallet" || (api._principalId && !api._user)) {
         content = <Wallets />;
     } else if (handler == "post") {
         const id = parseInt(param);

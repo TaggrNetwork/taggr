@@ -150,7 +150,7 @@ button {
 }
 
 .vertically_aligned {
-    vertical-align: middle;
+    vertical-align: inherit;
 }
 
 button:hover { filter: brightness(110%); }

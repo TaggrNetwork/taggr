@@ -1,7 +1,7 @@
 import * as React from "react";
 import {bigScreen, BurgerButton, ButtonWithLoading, Loading, ReactionToggleButton, realmColors, RealmSpan, ToggleButton} from "./common";
 import {authMethods, LoginMasks} from "./logins";
-import {Bell, CarretDown, Close, Cycles} from "./icons";
+import {Balloon, Bars, Bell, CarretDown, Close, Cycles, Document, Filter, Gear, Gem, Journal, Logout, Save, Ticket, User, Wallet} from "./icons";
 
 const logout = () => {
     location.href = "/";
@@ -54,18 +54,18 @@ export const Header = ({subtle, route}) => {
         {showLogins && <LoginMasks />}
         {showButtonBar && (!bigScreen() && user.current_realm) && <div className="spaced row_container"><PostButton classNameArg="max_width_col" /></div>}
         {showButtonBar && <div className="two_column_grid monospace top_spaced stands_out" style={{ rowGap: "1em" }}>
-            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/journal/${user.name}`}>📓 JOURNAL</a>}
-            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/user/${user.name}`}>👤 {api._user.name.toUpperCase()}</a>}
-            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/realms`}>🎭 REALMS</a>}
-            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/bookmarks`}>📑 BOOKMARKS</a>}
-            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/wallets">💳 WALLETS</a>}
-            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/invites">🎟 INVITES</a>}
-            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/settings">⚙️ SETTINGS</a>}
-            <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/dashboard">📊 DASHBOARD</a>
-            <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/tokenomics">💎 TOKENOMICS</a>
-            <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/proposals">🎈 PROPOSALS</a>
-            <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/whitepaper">📄 WHITE PAPER</a>
-            <a className="iconed" href="" onClick={logout}>🔌 LOGOUT</a>
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/journal/${user.name}`}><Journal /> JOURNAL</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/user/${user.name}`}><User /> {api._user.name.toUpperCase()}</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/realms`}><Filter /> REALMS</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href={`/#/bookmarks`}><Save /> BOOKMARKS</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/wallet"><Wallet /> WALLET</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/invites"><Ticket /> INVITES</a>}
+            {user && <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/settings"><Gear /> SETTINGS</a>}
+            <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/dashboard"><Bars /> DASHBOARD</a>
+            <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/tokenomics"><Gem /> TOKENOMICS</a>
+            <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/proposals"><Balloon /> PROPOSALS</a>
+            <a className="iconed" onClick={() => toggleButtonBar(!showButtonBar)} href="/#/whitepaper"><Document /> WHITE PAPER</a>
+            <a className="iconed" href="" onClick={logout}><Logout /> LOGOUT</a>
         </div>}
         {showRealms && <div className={`${bigScreen() ? "four_column_grid" : "two_column_grid"} monospace top_spaced stands_out`}>
             {user.realms.map(realm => <RealmSpan key={realm}
