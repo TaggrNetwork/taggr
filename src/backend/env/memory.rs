@@ -40,6 +40,15 @@ impl Memory {
         stable64_read(offset, &mut bytes);
         T::from_bytes(bytes)
     }
+
+    pub fn report_health(&self, logger: &mut super::Logger) {
+        let cache_size = self.posts.cache.len();
+        logger.info(format!(
+            "Memory health: {}, cache_size={}",
+            self.allocator.health(),
+            cache_size
+        ));
+    }
 }
 
 pub fn heap_to_stable(state: &mut super::State) {
@@ -138,13 +147,7 @@ impl Allocator {
         if let Some((start, size)) = new_segment {
             self.segments.insert(start, size);
         }
-        ic_cdk::println!(
-            "Allocated {} bytes, segments={:?}, boundary={}, mem_size={}",
-            n,
-            &self.segments,
-            self.boundary,
-            (self.mem_size.as_ref().unwrap())()
-        );
+        ic_cdk::println!("Allocated {} bytes, {}", n, self.health());
         Ok(start)
     }
 
@@ -197,13 +200,20 @@ impl Allocator {
             }
         }
         ic_cdk::println!(
-            "Deallocated segment={:?}, segments={:?}, boundary={}, mem_size={}",
+            "Deallocated segment={:?}, {}",
             (offset, size),
-            &self.segments,
-            self.boundary,
-            (self.mem_size.as_ref().unwrap())()
+            self.health()
         );
         Ok(())
+    }
+
+    fn health(&self) -> String {
+        format!(
+            "boundary={}, mem_size={}, segments={:?}",
+            self.boundary,
+            self.mem_size.as_ref().map(|f| f()).unwrap_or_default(),
+            &self.segments.len(),
+        )
     }
 
     #[cfg(test)]

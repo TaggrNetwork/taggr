@@ -958,6 +958,8 @@ impl State {
                     .error(format!("Couldn't execute last proposal: {:?}", err));
             }
         }
+
+        self.memory.report_health(&mut self.logger);
     }
 
     fn clean_up(&mut self) {
