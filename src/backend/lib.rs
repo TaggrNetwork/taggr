@@ -501,7 +501,9 @@ fn transactions() {
     let iter: Box<dyn DoubleEndedIterator<Item = _>> = if search_term.is_empty() {
         Box::new(iter)
     } else {
-        Box::new(iter.filter(|(_, t)| t.to.owner.to_string().contains(&search_term)))
+        Box::new(iter.filter(|(_, t)| {
+            (t.to.owner.to_string() + &t.from.owner.to_string()).contains(&search_term)
+        }))
     };
     reply(
         iter.rev()

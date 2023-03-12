@@ -95,28 +95,7 @@ export const Tokens = () => {
                     await loadTransactions();
                 }}>SEARCH</button>
             </div>
-            <table style={{width: "100%"}}>
-                <thead style={{textAlign: "right"}} className={bigScreen() ? null : "small_text"}>
-                    <tr>
-                        <th style={{textAlign: "left"}}>ID</th>
-                        <th style={{textAlign: "left"}}>Time</th>
-                        <th style={{textAlign: "center"}}>From</th>
-                        <th style={{textAlign: "center"}}>To</th>
-                        <th>Amount</th>
-                        <th>Fee</th>
-                    </tr>
-                </thead>
-                <tbody style={{textAlign: "right"}} className={`monospace ${bigScreen() ? null : "small_text"}`}>
-                    {transactions.map(([id, t]) => <tr key={JSON.stringify(t)}>
-                        <td style={{textAlign: "left"}}>{id}</td>
-                        <td style={{textAlign: "left"}}>{timeAgo(t.timestamp)}</td>
-                        <td style={{textAlign: "center"}}>{format(t.from.owner)}</td>
-                        <td style={{textAlign: "center"}}>{format(t.to.owner)}</td>
-                        <td>{token(t.amount)}</td>
-                        <td>{t.fee.toLocaleString()}</td>
-                    </tr>)}
-                </tbody>
-            </table>
+            <Transactions transactions={transactions} />
             <hr />
             {!noMoreData && <div style={{display:"flex", justifyContent: "center"}}>
                 <ButtonWithLoading classNameArg="active" onClick={() => setPage(page + 1)} label="MORE" />
@@ -124,6 +103,28 @@ export const Tokens = () => {
         </div>}
     </>;
 }
+
+export const Transactions = ({transactions}) =>
+    <table style={{width: "100%"}}>
+        <thead style={{textAlign: "right"}} className={bigScreen() ? null : "small_text"}>
+            <tr>
+                <th style={{textAlign: "left"}}>ID</th>
+                <th style={{textAlign: "left"}}>Time</th>
+                <th style={{textAlign: "center"}}>From</th>
+                <th style={{textAlign: "center"}}>To</th>
+                <th>#</th>
+            </tr>
+        </thead>
+        <tbody style={{textAlign: "right"}} className={`monospace ${bigScreen() ? null : "small_text"}`}>
+            {transactions.map(([id, t]) => <tr key={JSON.stringify(t)}>
+                <td style={{textAlign: "left"}}>{id}</td>
+                <td style={{textAlign: "left"}}>{timeAgo(t.timestamp)}</td>
+                <td style={{textAlign: "center"}}>{format(t.from.owner)}</td>
+                <td style={{textAlign: "center"}}>{format(t.to.owner)}</td>
+                <td>{token(t.amount)}</td>
+            </tr>)}
+        </tbody>
+    </table>;
 
 const format = acc => acc == "2vxsx-fae" ? "🌱" : principal(acc);
 
