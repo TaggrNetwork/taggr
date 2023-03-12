@@ -134,7 +134,7 @@ export const Wallets = () => {
                 <h1>{token_symbol} TOKENS</h1>
                 <div className="vcentered">
                     <code className="max_width_col"><CopyToClipboard value={user.principal} displayMap={val => bigScreen() ? val : val.split("-")[0]} /></code>
-                    <code className="xx_large_text">{tokenBalance(user)}</code>
+                    <code className="xx_large_text">{tokenBalance(user.balance)}</code>
                 </div>
                 <hr/>
                 <h2>Latest Transactions</h2>

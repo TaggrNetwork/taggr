@@ -22,7 +22,7 @@ import { Api } from "./api";
 import { Wallets } from "./wallets";
 import { applyTheme } from "./theme";
 import {Proposals} from "./proposals";
-import {Tokens} from "./tokens";
+import {Tokens, Transaction} from "./tokens";
 import {Whitepaper} from "./whitepaper";
 
 const { protocol, host, pathname } = location;
@@ -116,6 +116,8 @@ const App = () => {
         else content = <RealmPage name={decodeURI(name.toUpperCase())} />;
     } else if (handler == "inbox") {
         content = auth(<Inbox />);
+    } else if (handler == "transaction") {
+        content = <Transaction id={parseInt(param)} />;
     } else if (handler == "proposals") {
         content = <Proposals />
     } else if (handler.startsWith("token")) {

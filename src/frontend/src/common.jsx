@@ -145,7 +145,8 @@ export const timeAgo = (timestamp, absolute) => {
     }
 };
 
-export const tokenBalance = profile =>(profile.balance / Math.pow(10, backendCache.config.token_decimals)).toLocaleString() 
+export const tokenBalance = balance => (balance / Math.pow(10, backendCache.config.token_decimals)).toLocaleString();
+
 export const icpCode = (e8s, decimals, units = true) => <code className="xx_large_text">{icp(e8s, decimals)}{units && " ICP"}</code>;
 
 export const icp = (e8s, decimals = false) => {

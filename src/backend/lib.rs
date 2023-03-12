@@ -494,6 +494,12 @@ fn balances() {
     );
 }
 
+#[export_name = "canister_query transaction"]
+fn transaction() {
+    let id: usize = parse(&arg_data_raw());
+    reply(state().ledger.get(id).ok_or("not found"));
+}
+
 #[export_name = "canister_query transactions"]
 fn transactions() {
     let (page, search_term): (usize, String) = parse(&arg_data_raw());

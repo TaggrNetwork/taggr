@@ -178,7 +178,7 @@ export const UserInfo = ({profile}) => {
             </div>
             <div className="db_cell">
                 TOKENS
-                <code>{tokenBalance(profile)}</code>
+                <code>{tokenBalance(profile.balance)}</code>
             </div>
             {followees}
             {followers}
