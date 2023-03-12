@@ -4,7 +4,7 @@ import { Content } from './content';
 import { Poll } from './poll';
 import { isRoot, BurgerButton, reactions, timeAgo, ToggleButton, NotFound, applyPatch, loadPostBlobs, ShareButton, commaSeparated, Loading, objectReduce, reactionCosts, postUserToPost, loadPost, ReactionToggleButton, RealmRibbon, setTitle, ButtonWithLoading, bigScreen } from './common';
 import {PostFeed} from "./post_feed";
-import {reaction2icon, Chat, Edit, Save, Unsave, Watch, Unwatch, Repost, Coin, Flag, New, Comment, CarretRight, Trash } from "./icons";
+import {reaction2icon, Edit, Save, Unsave, Watch, Unwatch, Repost, Coin, Flag, New, CommentArrow, CarretRight, Trash, Comment } from "./icons";
 
 export const postDataProvider = (id, preloadedData = null, rootOnly = false) => {
     const provider = { root: id, source: {} };
@@ -148,7 +148,7 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
             {realmPost && <RealmRibbon name={post.realm} />}
             {commentAsPost  && <a className="reply_tag external monospace" href={`#/thread/${post.id}`}>{post.parent} &#8592;</a>}
             {isComment && !commentAsPost && <span className="thread_button clickable"
-                onClick={() => location.href = `#/thread/${post.id}`}><Comment classNameArg="action" /></span>}
+                onClick={() => location.href = `#/thread/${post.id}`}><CommentArrow classNameArg="action" /></span>}
             {!isNSFW && <article onClick={expand} className={isPrime ? "prime" : null}>
                 {/* The key is needed to render different content for different versions to avoid running into diffrrent
                  number of memorized pieces inside content */}
@@ -295,7 +295,7 @@ const PostBar = ({post, react, highlighted, highlightOp, repost, showInfo, toggl
             <Reactions reactionsMap={post.reactions} react={react} />
             {replies > 0 && !isThreadView && <ReactionToggleButton pressed={showComments}
                 onClick={showCarret ? goInside : () => { toggleInfo(false); toggleComments(!showComments) }}
-                icon={<><Chat classNameArg={newComments ? "accent" : null} />&nbsp;{`${replies}`}</>}
+                icon={<><Comment classNameArg={newComments ? "accent" : null} />&nbsp;{`${replies}`}</>}
             />}
             {!isThreadView && !showCarret && <BurgerButton onClick={() => { toggleInfo(!showInfo); toggleComments(false) }} pressed={showInfo} />}
             {(isThreadView || showCarret) && <button className="reaction_button unselected"
