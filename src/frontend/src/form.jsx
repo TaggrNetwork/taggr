@@ -83,7 +83,7 @@ export const Form = ({postId = null, comment, realmArg = "", expanded, submitCal
                     const scale = (low + high) / 2;
                     resized_content = await resize(content, scale / 100);
                     const ratio = resized_content.byteLength / max_blob_size_bytes;
-                    if (ratio < 1 && (0.95 < ratio || low > 99)) {
+                    if (ratio < 1 && (0.92 < ratio || low > 99)) {
                         break;
                     } else if (ratio > 1) {
                         content = resized_content;
@@ -342,15 +342,6 @@ function downScaleCanvas(cv, scale) {
             sG = sBuffer[sIndex + 1];
             sB = sBuffer[sIndex + 2];
 
-            /* !! untested : handling alpha !!
-               sA = sBuffer[sIndex + 3];
-               if (!sA) continue;
-               if (sA != 0xFF) {
-                   sR = (sR * sA) >> 8;  // or use /256 instead ??
-                   sG = (sG * sA) >> 8;
-                   sB = (sB * sA) >> 8;
-               }
-               */
             if (!crossX && !crossY) { // pixel does not cross
                 // just add components weighted by squared scale.
                 tBuffer[tIndex    ] += sR * sqScale;

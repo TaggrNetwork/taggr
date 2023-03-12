@@ -170,7 +170,7 @@ pub const CONFIG: &Config = &Config {
     max_post_length: 15000,
     max_tag_length: 20,
     max_user_info_length: 500,
-    max_blob_size_bytes: 358400,
+    max_blob_size_bytes: 460800,
 
     online_activity_minutes: 10 * 60000000000_u64,
     chores_interval_hours: 24 * HOUR,
