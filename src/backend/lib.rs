@@ -71,9 +71,6 @@ fn post_upgrade() {
     state_mut().load();
     set_timer();
 
-    #[cfg(feature = "dev")]
-    state_mut().storage.buckets.clear();
-
     // temporary post upgrade logic goes here
 }
 
@@ -84,6 +81,16 @@ fn post_upgrade() {
 // #[update]
 // async fn fix() {
 // }
+
+#[cfg(feature = "dev")]
+#[update]
+fn add_bucket(id: String) {
+    use candid::Principal;
+    state_mut()
+        .storage
+        .buckets
+        .insert(Principal::from_text(id).unwrap(), 0);
+}
 
 #[cfg(feature = "dev")]
 #[update]
