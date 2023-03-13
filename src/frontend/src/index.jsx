@@ -120,7 +120,7 @@ const App = () => {
         content = <Transaction id={parseInt(param)} />;
     } else if (handler == "proposals") {
         content = <Proposals />
-    } else if (handler.startsWith("token")) {
+    } else if (handler == "tokens") {
         content = <Tokens />
     } else if (handler == "bookmarks") {
         content = auth(<PostFeed title={<HeadBar title="Bookmarks" shareLink="bookmarks" />} includeComments={true}

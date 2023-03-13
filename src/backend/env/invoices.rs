@@ -9,7 +9,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 
-const INVOICE_MAX_AGE_HOURS: u64 = 24 * 3600000000000_u64;
+use super::canisters::call_canister;
+
+const INVOICE_MAX_AGE_HOURS: u64 = 24 * super::HOUR;
 
 #[derive(CandidType, Deserialize)]
 struct IcpXdrConversionRate {
@@ -89,14 +91,7 @@ impl Invoices {
             Tokens::from_e8s(kilo_cycles * invoice.e8s)
         };
         if balance >= costs {
-            transfer_raw(
-                MAINNET_LEDGER_CANISTER_ID,
-                costs,
-                main_account(),
-                Memo(0),
-                Some(invoice.sub_account),
-            )
-            .await?;
+            transfer(main_account(), costs, Memo(999), Some(invoice.sub_account)).await?;
             invoice.paid = true;
             invoice.paid_e8s = costs.e8s();
         } else if kilo_cycles > 0 {
@@ -104,21 +99,6 @@ impl Invoices {
         }
         Ok(invoice.clone())
     }
-}
-
-pub async fn transfer(
-    to: &str,
-    amount: Tokens,
-    subaccount: Option<Subaccount>,
-) -> Result<BlockIndex, String> {
-    transfer_raw(
-        MAINNET_LEDGER_CANISTER_ID,
-        amount,
-        parse_account(to)?,
-        Memo(0),
-        subaccount,
-    )
-    .await
 }
 
 pub fn parse_account(acc: &str) -> Result<AccountIdentifier, String> {
@@ -149,15 +129,14 @@ pub fn e8s_to_icp(e8s: u64) -> String {
     format!("{}.{:08}", e8s / 100000000, e8s % 100000000)
 }
 
-pub async fn transfer_raw(
-    ledger_canister_id: Principal,
-    amount: Tokens,
+pub async fn transfer(
     to: AccountIdentifier,
+    amount: Tokens,
     memo: Memo,
     sub_account: Option<Subaccount>,
 ) -> Result<BlockIndex, String> {
-    let (result,): (TransferResult,) = ic_cdk::call(
-        ledger_canister_id,
+    let (result,): (TransferResult,) = call_canister(
+        MAINNET_LEDGER_CANISTER_ID,
         "transfer",
         (TransferArgs {
             created_at_time: None,
@@ -179,7 +158,7 @@ pub async fn transfer_raw(
 }
 
 async fn account_balance(account: AccountIdentifier) -> Tokens {
-    let (balance,): (Tokens,) = ic_cdk::call(
+    let (balance,): (Tokens,) = call_canister(
         MAINNET_LEDGER_CANISTER_ID,
         "account_balance",
         (AccountBalanceArgs { account },),
@@ -194,7 +173,7 @@ pub async fn get_xdr_in_e8s() -> Result<u64, String> {
         data: IcpXdrConversionRate {
             xdr_permyriad_per_icp,
         },
-    },) = ic_cdk::call(
+    },) = call_canister(
         MAINNET_CYCLES_MINTING_CANISTER_ID,
         "get_icp_xdr_conversion_rate",
         (),
@@ -206,13 +185,12 @@ pub async fn get_xdr_in_e8s() -> Result<u64, String> {
 
 pub async fn topup_with_icp(canister_id: &Principal, xdrs: u64) -> Result<u128, String> {
     let e8s = xdrs * get_xdr_in_e8s().await?;
-    let block_index = super::invoices::transfer_raw(
-        MAINNET_LEDGER_CANISTER_ID,
-        Tokens::from_e8s(e8s),
+    let block_index = transfer(
         AccountIdentifier::new(
             &MAINNET_CYCLES_MINTING_CANISTER_ID,
             &principal_to_subaccount(canister_id),
         ),
+        Tokens::from_e8s(e8s),
         Memo(0x50555054),
         None,
     )
@@ -242,7 +220,7 @@ async fn notify(canister_id: Principal, block_index: u64) -> Result<u128, String
         },
     }
 
-    let (result,): (Result<u128, NotifyError>,) = ic_cdk::call(
+    let (result,): (Result<u128, NotifyError>,) = call_canister(
         MAINNET_CYCLES_MINTING_CANISTER_ID,
         "notify_top_up",
         (NotifyTopUpArg {

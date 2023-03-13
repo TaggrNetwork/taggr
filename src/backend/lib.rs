@@ -72,19 +72,41 @@ fn post_upgrade() {
     set_timer();
 
     // temporary post upgrade logic goes here
-
-    // User's post was reported, but due to a bug in karma accounting, the new karma wasn't
-    // subtracted. 129 is the number of points that should have been subtracted
-    state_mut().users.get_mut(&1075).unwrap().rewarded_karma -= 129;
+    let s = state_mut();
+    for realm in s.realms.values_mut() {
+        realm.posts.sort_unstable_by(|a, b| a.cmp(&b));
+    }
 }
 
 /*
  * Updates
  */
 
-// #[update]
-// async fn fix() {
-// }
+#[update]
+async fn fix() {
+    for p in state().proposals.clone() {
+        if p.description.is_empty() {
+            return;
+        }
+        let s = state_mut();
+        let principal = state().users.get(&p.proposer).unwrap().principal;
+        let post_id = post::add(
+            s,
+            p.description.clone(),
+            Default::default(),
+            principal,
+            p.timestamp,
+            None,
+            None,
+            Some(Extension::Proposal(p.id)),
+        )
+        .await
+        .unwrap();
+        let p = s.proposals.iter_mut().find(|pr| pr.id == p.id).unwrap();
+        p.description.clear();
+        p.post_id = post_id;
+    }
+}
 
 #[cfg(feature = "dev")]
 #[update]
@@ -307,7 +329,11 @@ fn create_invite() {
 }
 
 #[update]
-fn propose_release(description: String, commit: String, binary: ByteBuf) -> Result<u32, String> {
+async fn propose_release(
+    description: String,
+    commit: String,
+    binary: ByteBuf,
+) -> Result<u32, String> {
     proposals::propose(
         state_mut(),
         caller(),
@@ -317,29 +343,43 @@ fn propose_release(description: String, commit: String, binary: ByteBuf) -> Resu
             binary: binary.to_vec(),
             hash: Default::default(),
         }),
+        time(),
     )
+    .await
 }
 
 #[export_name = "canister_update propose_controller"]
 fn propose_controller() {
-    let (description, controller): (String, String) = parse(&arg_data_raw());
-    reply(proposals::propose(
-        state_mut(),
-        caller(),
-        description,
-        proposals::Payload::SetController(controller),
-    ))
+    spawn(async {
+        let (description, controller): (String, String) = parse(&arg_data_raw());
+        reply(
+            proposals::propose(
+                state_mut(),
+                caller(),
+                description,
+                proposals::Payload::SetController(controller),
+                time(),
+            )
+            .await,
+        )
+    });
 }
 
 #[export_name = "canister_update propose_funding"]
 fn propose_funding() {
-    let (description, receiver, tokens): (String, String, u64) = parse(&arg_data_raw());
-    reply(proposals::propose(
-        state_mut(),
-        caller(),
-        description,
-        proposals::Payload::Fund(receiver, tokens),
-    ))
+    spawn(async {
+        let (description, receiver, tokens): (String, String, u64) = parse(&arg_data_raw());
+        reply(
+            proposals::propose(
+                state_mut(),
+                caller(),
+                description,
+                proposals::Payload::Fund(receiver, tokens),
+                time(),
+            )
+            .await,
+        )
+    });
 }
 
 #[export_name = "canister_update vote_on_proposal"]
@@ -531,17 +571,31 @@ fn transactions() {
     );
 }
 
+#[export_name = "canister_query proposal"]
+fn proposal() {
+    let id: u32 = parse(&arg_data_raw());
+    reply(
+        state()
+            .proposals
+            .iter()
+            .find(|proposal| proposal.id == id)
+            .ok_or("no proposal found"),
+    )
+}
+
 #[export_name = "canister_query proposals"]
 fn proposals() {
     let page_size = 10;
     let page: usize = parse(&arg_data_raw());
+    let state = state();
     reply(
-        state()
+        state
             .proposals
             .iter()
             .rev()
             .skip(page * page_size)
             .take(page_size)
+            .filter_map(|proposal| state.posts.get(&proposal.post_id))
             .collect::<Vec<_>>(),
     )
 }
@@ -672,6 +726,10 @@ fn last_posts() {
     reply(
         state
             .last_posts(caller(), with_comments)
+            .filter(|post| match post.extension {
+                Some(Extension::Proposal(id)) => id > 50,
+                _ => true,
+            })
             .skip(page * CONFIG.feed_page_size)
             .take(CONFIG.feed_page_size)
             .cloned()

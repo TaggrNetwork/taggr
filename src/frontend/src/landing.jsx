@@ -11,7 +11,7 @@ const FEED_KEY = "_feed";
 export const Landing = ({heartbeat}) => {
     const user = api._user;
     const [feed, setFeed] = React.useState(localStorage.getItem(FEED_KEY) || "HOT");
-    const headline = `# Welcome to #${backendCache.config.name}!\nA fully autonomous decentralized social network.\n\n[WHITE PAPER &#x279C;](/#/about)`;
+    const headline = `# Welcome to #${backendCache.config.name}!\nA **fully decentralized** social network.\n\n[WHITE PAPER &#x279C;](/#/about)`;
     const title = <div className="text_centered vertically_spaced">
         {[ {icon: <New />, id: "NEW"}, {icon: <Fire />, id: "HOT"}, user && { icon: <User />, id: "FOLLOWED" }].filter(Boolean).map(
             ({icon, id}) => <button key={id} onClick={() => {localStorage.setItem(FEED_KEY, id); setFeed(id)}}

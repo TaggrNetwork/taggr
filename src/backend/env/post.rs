@@ -15,6 +15,7 @@ pub struct Poll {
 #[derive(Clone, Serialize, Deserialize)]
 pub enum Extension {
     Poll(Poll),
+    Proposal(u32),
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
@@ -34,7 +35,7 @@ pub struct Post {
     pub tree_update: u64,
     pub report: Option<Report>,
     pub tips: Vec<(UserId, Cycles)>,
-    extension: Option<Extension>,
+    pub extension: Option<Extension>,
     pub realm: Option<String>,
     #[serde(default)]
     pub hashes: Vec<String>,
@@ -193,7 +194,7 @@ impl Post {
         let tags = self.tags.len() as u64;
         CONFIG.post_cost.max(tags as i64 * CONFIG.tag_cost)
             + blobs as i64 * CONFIG.blob_cost
-            + if self.extension.is_some() {
+            + if matches!(self.extension, Some(Extension::Poll(_))) {
                 CONFIG.poll_cost
             } else {
                 0
@@ -280,7 +281,7 @@ pub async fn edit(
     post.timestamp = timestamp;
 
     // We only change the realm on root posts.
-    if post.parent.is_none() {
+    if post.parent.is_none() && post.realm != picked_realm {
         // remove post from the previous realm
         if let Some(realm) = post
             .realm
@@ -337,35 +338,38 @@ pub async fn add(
         return Err("Bots can't create comments currently".into());
     }
 
-    let limit = if user.is_bot() {
-        1
-    } else if parent.is_none() {
-        CONFIG.max_posts_per_hour
-    } else {
-        CONFIG.max_comments_per_hour
-    } as usize;
-    if user
-        .posts
-        .iter()
-        .rev()
-        .filter_map(|id| state.posts.get(id))
-        .filter(|post| {
-            !(parent.is_none() ^ post.parent.is_none())
-                && post.timestamp > timestamp.saturating_sub(HOUR)
-        })
-        .count()
-        >= limit
-    {
-        return Err(format!(
-            "not more than {} {} per hour are allowed",
-            limit,
-            if parent.is_none() {
-                "posts"
-            } else {
-                "comments"
-            }
-        ));
+    if !matches!(extension, Some(Extension::Proposal(_))) {
+        let limit = if user.is_bot() {
+            1
+        } else if parent.is_none() {
+            CONFIG.max_posts_per_hour
+        } else {
+            CONFIG.max_comments_per_hour
+        } as usize;
+        if user
+            .posts
+            .iter()
+            .rev()
+            .filter_map(|id| state.posts.get(id))
+            .filter(|post| {
+                !(parent.is_none() ^ post.parent.is_none())
+                    && post.timestamp > timestamp.saturating_sub(HOUR)
+            })
+            .count()
+            >= limit
+        {
+            return Err(format!(
+                "not more than {} {} per hour are allowed",
+                limit,
+                if parent.is_none() {
+                    "posts"
+                } else {
+                    "comments"
+                }
+            ));
+        }
     }
+
     let realm = match parent.and_then(|id| state.posts.get(&id)) {
         None => picked_realm.or_else(|| user.current_realm.clone()),
         Some(post) => post.realm.clone(),

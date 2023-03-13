@@ -150,7 +150,7 @@ button {
 }
 
 .vertically_aligned {
-    vertical-align: inherit;
+    vertical-align: middle;
 }
 
 button:hover { filter: brightness(110%); }
@@ -400,7 +400,10 @@ div.thumbnails {
     border-radius: 5px;
 }
 
-.poll, .repost { margin: 0.5em }
+.post_extension, .repost {
+    margin: 0.5em;
+    margin-bottom: 1em;
+}
 
 #preview {
   display: none;
@@ -560,8 +563,8 @@ a.accent, .accent { color: $accent; }
 .post_box > article h4, 
 .post_box > article h5, 
 .post_box > article pre {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
 }
 
 .post_box > article ol,

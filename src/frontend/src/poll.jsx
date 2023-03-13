@@ -14,7 +14,7 @@ export const Poll = ({poll, post_id, created}) => {
     const expired = createdHoursAgo > poll.deadline;
     const showVoting = !isNaN(user_id) && !voted && !expired;
 
-    return <div className="column_container poll" data-meta="skipClicks">
+    return <div className="column_container post_extension" data-meta="skipClicks">
         {data.options.map((option, id) => {
             const votes = (data.votes[id] || []).length;
             const pc = totalVotes > 0 ? Math.ceil(votes / totalVotes * 100) : 0;

@@ -114,7 +114,7 @@ export const Dashboard = ({fullMode}) => {
                 <Content value={logs.map(({timestamp, level, message}) => 
                     `\`${shortDate(new Date(parseInt(timestamp) / 1000000))}\`: ` + 
                     `${level2icon(level)} ` +
-                    `${message}`).join("\n\n")} classNameArg="monospace" />
+                    `${message}`).join("\n- - -\n")} classNameArg="monospace" />
             </div>
         }
     </>;

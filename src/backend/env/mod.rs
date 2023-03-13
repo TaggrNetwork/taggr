@@ -1,4 +1,4 @@
-use self::invoices::Invoice;
+use self::invoices::{parse_account, Invoice};
 use self::proposals::Status;
 use self::token::account;
 use self::user::{Notification, Predicate};
@@ -9,7 +9,7 @@ use config::{CONFIG, ICP_CYCLES_PER_XDR};
 use ic_cdk::api::stable::stable64_size;
 use ic_cdk::api::{self, canister_balance};
 use ic_cdk::export::candid::Principal;
-use ic_ledger_types::Tokens;
+use ic_ledger_types::{Memo, Tokens};
 use invoices::e8s_to_icp;
 use invoices::Invoices;
 use memory::Storable;
@@ -828,8 +828,9 @@ impl State {
             }
         }
         invoices::transfer(
-            &recipient,
+            parse_account(&recipient)?,
             parse(&amount)?,
+            Memo(1),
             Some(principal_to_subaccount(&principal)),
         )
         .await
@@ -865,7 +866,11 @@ impl State {
             if e8s < invoices::fee() * 100 {
                 continue;
             }
-            match invoices::transfer(&user.account, Tokens::from_e8s(e8s), None).await {
+            let account = match parse_account(&user.account) {
+                Ok(value) => value,
+                _ => continue,
+            };
+            match invoices::transfer(account, Tokens::from_e8s(e8s), Memo(777), None).await {
                 Ok(_) => {
                     user_rewards += user_reward;
                     user_revenues += user_revenue;
@@ -1391,6 +1396,9 @@ impl State {
         post_id: PostId,
         reason: String,
     ) -> Result<(), String> {
+        if reason.len() > 1000 {
+            return Err("reason too long".into());
+        }
         let cycles_required = CONFIG.reporting_penalty / 2;
         let user = match self.principal_to_user(principal) {
             Some(user) if user.cycles() >= cycles_required => user.clone(),

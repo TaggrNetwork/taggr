@@ -1,3 +1,7 @@
+use std::future::Future;
+
+use candid::utils::{ArgumentDecoder, ArgumentEncoder};
+use ic_cdk::api::call::CallResult;
 use ic_cdk::export::candid::{CandidType, Principal};
 use ic_cdk::id;
 use ic_cdk::{
@@ -174,4 +178,12 @@ pub async fn top_up(canister_id: Principal, min_cycle_balance: u64) -> Result<bo
         return Ok(true);
     }
     Ok(false)
+}
+
+pub fn call_canister<T: ArgumentEncoder, R: for<'a> ArgumentDecoder<'a>>(
+    id: Principal,
+    method: &str,
+    args: T,
+) -> impl Future<Output = CallResult<R>> {
+    ic_cdk::call(id, method, args)
 }

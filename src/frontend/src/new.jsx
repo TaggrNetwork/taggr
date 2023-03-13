@@ -28,11 +28,10 @@ export const PostSubmissionForm = ({id, repost}) => {
             postId = post.id;
         } else {
             const result = await api.add_post(text, blobs, [], optionalRealm, encodePoll(poll));
-            const id = result.Ok;
-            if (typeof id == "undefined") {
+            if ("Err" in result) {
                 return alert(`Error: ${result.Err}`);
             }
-            postId = id;
+            postId = result.Ok;
         }
         location.href = `#/post/${postId}`;
     };

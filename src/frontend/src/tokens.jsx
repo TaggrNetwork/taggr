@@ -36,7 +36,7 @@ export const Tokens = () => {
     const { total_supply, proposal_approval_threshold } = backendCache.config; 
 
     return <>
-        <HeadBar title="Tokenomics" shareLink="tokenomics" />
+        <HeadBar title="Tokens" shareLink="tokens" />
         {balances.length == 0 && <Loading />}
         {balances.length > 0 && <div className="spaced">
             <div className={`${bigScreen() ? "four_column_grid" : "two_column_grid"} monospace vertically_spaced`}>

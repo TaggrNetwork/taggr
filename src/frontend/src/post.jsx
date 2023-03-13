@@ -2,9 +2,10 @@ import * as React from "react";
 import { Form } from './form';
 import { Content } from './content';
 import { Poll } from './poll';
-import { isRoot, BurgerButton, reactions, timeAgo, ToggleButton, NotFound, applyPatch, loadPostBlobs, ShareButton, commaSeparated, Loading, objectReduce, reactionCosts, postUserToPost, loadPost, ReactionToggleButton, RealmRibbon, setTitle, ButtonWithLoading, bigScreen } from './common';
+import { isRoot, BurgerButton, reactions, timeAgo, ToggleButton, NotFound, applyPatch, loadPostBlobs, ShareButton, commaSeparated, Loading, objectReduce, reactionCosts, postUserToPost, loadPost, ReactionToggleButton, RealmRibbon, setTitle, ButtonWithLoading, bigScreen, UserLink } from './common';
 import {PostFeed} from "./post_feed";
 import {reaction2icon, Edit, Save, Unsave, Watch, Unwatch, Repost, Coin, Flag, New, CommentArrow, CarretRight, Trash, Comment } from "./icons";
+import {Proposal} from "./proposals";
 
 export const postDataProvider = (id, preloadedData = null, rootOnly = false) => {
     const provider = { root: id, source: {} };
@@ -153,7 +154,8 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
                 {/* The key is needed to render different content for different versions to avoid running into diffrrent
                  number of memorized pieces inside content */}
                 <Content key={post.effBody} post={true} value={post.effBody} blobs={blobs} collapse={!expanded} primeMode={isRoot(post) && !repost} />
-                {post.extension && <Poll poll={post.extension.Poll} post_id={post.id} created={postCreated} />}
+                {post.extension && post.extension.Poll && <Poll poll={post.extension.Poll} post_id={post.id} created={postCreated} />}
+                {post.extension && post.extension.Proposal && <Proposal id={post.extension.Proposal} />}
             </article>}
             <PostBar post={post} react={react} highlightOp={highlightOp} repost={repost} highlighted={highlighted}
                 showComments={showComments} toggleComments={toggleComments} postCreated={postCreated}
@@ -186,17 +188,12 @@ export const Post = ({id, data, version, isFeedItem, repost, classNameArg, isCom
 };
 
 const PostInfo = ({post, version, postCreated, callback}) => {
-    const linkToProfile = id => <a key={id} href={`/#/user/${id}`}>{`${window.backendCache.users[id]}`}</a> ;
     const postAuthor = api._user?.id == post.user.id;
     return <>
         {api._user && <div className="row_container top_half_spaced">
             {!postAuthor && <ButtonWithLoading classNameArg="max_width_col" onClick={async () => {
                 let reason = prompt("You are reporting this post to stalwarts. If the report gets rejected, you'll lose cycles and karma. If you want to continue, please justify the report:");
                 if (reason) {
-                    if (reason.length > 256) {
-                        alert("Please limit your message to 256 characters.");
-                        return;
-                    }
                     let response = await api.call("report", post.id, reason);
                     if ("Err" in response) {
                         alert(`Error: ${response.Err}`);
@@ -254,18 +251,18 @@ const PostInfo = ({post, version, postCreated, callback}) => {
                 <b>VERSIONS</b>: {commaSeparated((post.patches.concat([[post.timestamp, ""]])).map(([timestamp, _], v) => version == v 
                     ? `${version} (${timeAgo(timestamp)})`
                     : <span key={v}><a href={`/#/post/${post.id}/${v}`}>{`${v}`}</a> ({timeAgo(timestamp)})</span>))}</div>}
-            {post.watchers.length > 0 && <div>
-                <b>WATCHERS</b>: {commaSeparated(post.watchers.map(linkToProfile))}
-            </div>}
-            {post.tips.length > 0 && <div>
+            {post.watchers.length > 0 && <>
+                <b>WATCHERS</b>: {commaSeparated(post.watchers.map(id => <UserLink key={id} id={id} />))}
+            </>}
+            {post.tips.length > 0 && <>
                 <b>TIPS</b>: {commaSeparated(post.tips.map(([id, tip]) => <span key={id + tip}><code>{tip}</code> from {linkToProfile(id)}</span>))}
-            </div>}
+            </>}
             {Object.keys(post.reactions).length > 0 && <div className="top_spaced">
                 {Object.keys(post.reactions).map(id => {
                     let users = post.reactions[id];
                     const [reactId, _cost] = reactions().find(([reaction_id, _cost, _]) => reaction_id == id);
-                    return <div key={id}>
-                        {reaction2icon(reactId)} {commaSeparated(users.map(id => linkToProfile(id)))}
+                    return <div key={id} className="bottom_half_spaced">
+                        {reaction2icon(reactId)} {commaSeparated(users.map(id => <UserLink key={id} id={id} />))}
                     </div>;
                 })}</div>}
         </div>
